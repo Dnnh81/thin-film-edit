@@ -50,6 +50,7 @@ __published:	// IDE-managed Components
 	TLabel *Label32;
 	TLabel *Label23;
 	TButton *ButtonClearGraph;
+	TMenuItem *ImportMLS1;
 
 
 
@@ -70,6 +71,7 @@ __published:	// IDE-managed Components
           TRect &Rect, TGridDrawState State);
 	void __fastcall ImportTFD1Click(TObject *Sender);
 	void __fastcall ButtonClearGraphClick(TObject *Sender);
+	void __fastcall ImportDataFromFile(TObject *Sender);
 
 			  private:	// User declarations
 

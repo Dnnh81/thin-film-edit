@@ -159,6 +159,10 @@ object Form1: TForm1
         Caption = 'Import TFD'
         OnClick = ImportTFD1Click
       end
+      object ImportMLS1: TMenuItem
+        Caption = 'Import MLS'
+        OnClick = ImportDataFromFile
+      end
     end
     object Changewavelenght1: TMenuItem
       Caption = 'Change wavelenght'

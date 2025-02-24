@@ -29,10 +29,10 @@ std::vector<TLineSeries*> savedSeries;
 void LoadRefractiveIndices();
 
 __fastcall TForm1::TForm1(TComponent* Owner) : TForm(Owner) {
-    ComboBoxCalcType->Items->Add("Пропускание");
-    ComboBoxCalcType->Items->Add("Отражение");
+	ComboBoxCalcType->Items->Add("Пропускание");
+	ComboBoxCalcType->Items->Add("Отражение");
 	ComboBoxCalcType->ItemIndex = 0; // По умолчанию выбрано пропускание
-    // Удаление предварительной загрузки данных
+	// Удаление предварительной загрузки данных
 	// LoadRefractiveIndices();
 
 
@@ -45,6 +45,7 @@ void LoadRefractiveIndices() {
     TSearchRec sr;
     if (FindFirst(Dir + "*.txt", faAnyFile, sr) == 0) {
         do {
+			String materialName = ChangeFileExt(sr.Name, "").UpperCase(); // Оставляем оригинальный регистр из папки
             TStringList *MaterialData = new TStringList();
             MaterialData->LoadFromFile(Dir + sr.Name);
             vector<pair<double, Complex>> values;
@@ -55,67 +56,62 @@ void LoadRefractiveIndices() {
                 tokens->DelimitedText = MaterialData->Strings[i];
                 if (tokens->Count >= 2) {
                     try {
-                        // Убедимся, что используем правильный формат чисел
                         double wavelength = StrToFloat(tokens->Strings[0]);
                         double n_value = StrToFloat(tokens->Strings[1]);
-                        values.push_back(make_pair(wavelength, Complex(n_value, 0))); // без учета поглощения
-                    } catch (const Exception &e) {
-                        ShowMessage("Некорректное значение в файле: " + Dir + sr.Name + " на строке " + IntToStr(i + 1) + "\n" + e.Message);
-                    }
-                } else {
-                    ShowMessage("Неверное количество токенов в файле: " + Dir + sr.Name + " на строке " + IntToStr(i + 1));
-				}
-				delete tokens;
-			}
-			RefractiveIndices[ChangeFileExt(sr.Name, "")] = values;
+                        double k_value = (tokens->Count > 2) ? StrToFloat(tokens->Strings[2]) : 0.0;
+                        values.push_back(make_pair(wavelength, Complex(n_value, k_value))); // Учет коэффициента поглощения
+                    } catch (...) {}
+                }
+                delete tokens;
+            }
+            RefractiveIndices[materialName] = values; // Сохраняем материал с оригинальным регистром
             delete MaterialData;
-		} while (FindNext(sr) == 0);
-		FindClose(sr);
-
-	}
+        } while (FindNext(sr) == 0);
+        FindClose(sr);
+    }
 }
 
 Complex GetSubstrateRefractiveIndex(const String &substrate, double lambda) {
-	String filePath = ExtractFilePath(Application->ExeName) + "Substrate/" + substrate + ".txt";
-	TStringList *lines = new TStringList();
-	lines->LoadFromFile(filePath);
+    String filePath = ExtractFilePath(Application->ExeName) + "Substrate/" + substrate + ".txt";
+    TStringList *lines = new TStringList();
+    lines->LoadFromFile(filePath);
 
-	Complex refractiveIndex(1.0, 0.0);
-	double minDiff = DBL_MAX;
+    Complex refractiveIndex(1.0, 0.0);
+    double minDiff = DBL_MAX;
 
-	for (int i = 0; i < lines->Count; i++) {
-		TStringList *tokens = new TStringList();
-		tokens->Delimiter = ' ';
-		tokens->StrictDelimiter = true;
-		tokens->DelimitedText = lines->Strings[i];
+    for (int i = 0; i < lines->Count; i++) {
+        TStringList *tokens = new TStringList();
+        tokens->Delimiter = ' ';
+        tokens->StrictDelimiter = true;
+        tokens->DelimitedText = lines->Strings[i];
 
-		if (tokens->Count >= 2) {
-			try {
-				double fileLambda = StrToFloat(tokens->Strings[0]);
-				double n_value = StrToFloat(tokens->Strings[1]);
-				double diff = fabs(fileLambda - lambda);
+        if (tokens->Count >= 2) {
+            try {
+                double fileLambda = StrToFloat(tokens->Strings[0]);
+                double n_value = StrToFloat(tokens->Strings[1]);
+                double diff = fabs(fileLambda - lambda);
 
-				if (diff < minDiff) {
-					minDiff = diff;
-					refractiveIndex = Complex(n_value, 0.0);
-				}
-			} catch (const Exception &e) {
-				ShowMessage("Ошибка в файле подложки: " + filePath + " на строке " + IntToStr(i + 1) + "\n" + e.Message);
-			}
-		} else {
+                if (diff < minDiff) {
+                    minDiff = diff;
+                    refractiveIndex = Complex(n_value, 0.0);
+                }
+            } catch (const Exception &e) {
+                ShowMessage("Ошибка в файле подложки: " + filePath + " на строке " + IntToStr(i + 1) + "\n" + e.Message);
+            }
+        } else {
+            ShowMessage("Некорректная строка в файле подложки: " + filePath + " на строке " + IntToStr(i + 1));
+        }
 
-		}
+        delete tokens;
+    }
 
-		delete tokens;
-	}
-
-	delete lines;
+    delete lines;
 	return refractiveIndex;
 }
 
 Complex GetRefractiveIndex(const String &material, double lambda) {
-    if (RefractiveIndices.find(material) == RefractiveIndices.end()) return Complex(1.0, 0.0);
-    vector<pair<double, Complex>> &data = RefractiveIndices[material];
+	if (RefractiveIndices.find(material) == RefractiveIndices.end()) return Complex(1.0, 0.0);
+	vector<pair<double, Complex>> &data = RefractiveIndices[material];
 	if (data.empty()) return Complex(1.0, 0.0);
 	if (lambda <= data.front().first) return data.front().second;
 	if (lambda >= data.back().first) return data.back().second;
@@ -164,28 +160,28 @@ pair<double, double> RCWAMethod(double lambda, const String &substrate, const ve
 
 
 void __fastcall TForm1::ButtonCalculateClick(TObject *Sender) {
-    double lambdaMin = StrToFloat(EditLambdaMin->Text);
-    double lambdaMax = StrToFloat(EditLambdaMax->Text);
+	double lambdaMin = StrToFloat(EditLambdaMin->Text);
+	double lambdaMax = StrToFloat(EditLambdaMax->Text);
 	int points = 1000;
-    double step = (lambdaMax - lambdaMin) / points;
+	double step = (lambdaMax - lambdaMin) / points;
 	Series1->Clear();
 
-    // Открытие файла для записи результатов
+	// Открытие файла для записи результатов
 	TStringList *logData = new TStringList();
-    logData->Add("Wavelength (nm)\tTransmission\tReflection");
+	logData->Add("Wavelength (nm)\tTransmission\tReflection");
 
-    for (int i = 0; i <= points; ++i) {
+	for (int i = 0; i <= points; ++i) {
 		double lambda = lambdaMin + i * step;
-        double transmissionValue;
+		double transmissionValue;
 		double reflectionValue;
-        if (ComboBoxCalcType->ItemIndex == 0) {
-            // Пропускание
-            Complex transmission = CalculateTransmission(lambda);
+		if (ComboBoxCalcType->ItemIndex == 0) {
+			// Пропускание
+			Complex transmission = CalculateTransmission(lambda);
 			transmissionValue = transmission.real()*100;  // Берем только действительную часть
 			// Добавление данных в график
 			Series1->AddXY(lambda, transmissionValue);
-        } else {
-            // Отражение
+		} else {
+			// Отражение
 			Complex reflection = CalculateReflection(lambda);
 			reflectionValue = reflection.real()*100;  // Берем только действительную часть
 			Series1->AddXY(lambda, reflectionValue);
@@ -193,9 +189,9 @@ void __fastcall TForm1::ButtonCalculateClick(TObject *Sender) {
 
 
 
-        // Добавление данных в лог
-        logData->Add(FloatToStrF(lambda, ffFixed, 15, 6) + "\t" +
-                     FloatToStrF(transmissionValue, ffFixed, 15, 6) + "\t" +
+		// Добавление данных в лог
+		logData->Add(FloatToStrF(lambda, ffFixed, 15, 6) + "\t" +
+					 FloatToStrF(transmissionValue, ffFixed, 15, 6) + "\t" +
                      FloatToStrF(reflectionValue, ffFixed, 15, 6));
 	}
 
@@ -212,21 +208,21 @@ void __fastcall TForm1::ButtonCalculateClick(TObject *Sender) {
 
 
 Complex __fastcall TForm1::CalculateTransmission(double lambda) {
-    vector<String> materials;
-    vector<double> thicknesses;
-    for (int i = 1; i < StringGrid1->RowCount; i++) {
-        materials.push_back(StringGrid1->Cells[1][i]);
-        thicknesses.push_back(StrToFloat(StringGrid1->Cells[2][i]));
-    }
-    auto result = RCWAMethod(lambda, EditSubstrate->Text, materials, thicknesses);
-    return result.first; // Пропускание
+	vector<String> materials;
+	vector<double> thicknesses;
+	for (int i = 1; i < StringGrid1->RowCount; i++) {
+		materials.push_back(StringGrid1->Cells[1][i]);
+		thicknesses.push_back(StrToFloat(StringGrid1->Cells[2][i]));
+	}
+	auto result = RCWAMethod(lambda, EditSubstrate->Text, materials, thicknesses);
+	return result.first; // Пропускание
 }
 
 Complex __fastcall TForm1::CalculateReflection(double lambda) {
-    vector<String> materials;
-    vector<double> thicknesses;
-    for (int i = 1; i < StringGrid1->RowCount; i++) {
-        materials.push_back(StringGrid1->Cells[1][i]);
+	vector<String> materials;
+	vector<double> thicknesses;
+	for (int i = 1; i < StringGrid1->RowCount; i++) {
+		materials.push_back(StringGrid1->Cells[1][i]);
 		thicknesses.push_back(StrToFloat(StringGrid1->Cells[2][i]));
 	}
 	auto result = RCWAMethod(lambda, EditSubstrate->Text, materials, thicknesses);
@@ -235,39 +231,39 @@ Complex __fastcall TForm1::CalculateReflection(double lambda) {
 
 
 void __fastcall TForm1::LoadLMR1Click(TObject *Sender) {
-    if (OpenDialog1->Execute()) {
-        String filePath = OpenDialog1->FileName;
-        _di_IXMLDocument xmlDoc = NewXMLDocument();
-        xmlDoc->LoadFromFile(filePath);
-        xmlDoc->Active = true;
-        String projectPath = ExtractFilePath(Application->ExeName);
-        String substrateFolder = projectPath + "Substrate\\";
-        String materialsFolder = projectPath + "Materials\\";
-        // Создаём папки, если их нет
-        if (!ForceDirectories(substrateFolder)) {
-            ShowMessage("Ошибка создания папки: " + substrateFolder);
-        }
-        if (!ForceDirectories(materialsFolder)) {
-            ShowMessage("Ошибка создания папки: " + materialsFolder);
-        }
-        // Найти узел dispersionsdata
-        _di_IXMLNode rootNode = xmlDoc->DocumentElement;
-        _di_IXMLNode dispNode = rootNode->ChildNodes->FindNode("dispersionsdata");
+	if (OpenDialog1->Execute()) {
+		String filePath = OpenDialog1->FileName;
+		_di_IXMLDocument xmlDoc = NewXMLDocument();
+		xmlDoc->LoadFromFile(filePath);
+		xmlDoc->Active = true;
+		String projectPath = ExtractFilePath(Application->ExeName);
+		String substrateFolder = projectPath + "Substrate\\";
+		String materialsFolder = projectPath + "Materials\\";
+		// Создаём папки, если их нет
+		if (!ForceDirectories(substrateFolder)) {
+			ShowMessage("Ошибка создания папки: " + substrateFolder);
+		}
+		if (!ForceDirectories(materialsFolder)) {
+			ShowMessage("Ошибка создания папки: " + materialsFolder);
+		}
+		// Найти узел dispersionsdata
+		_di_IXMLNode rootNode = xmlDoc->DocumentElement;
+		_di_IXMLNode dispNode = rootNode->ChildNodes->FindNode("dispersionsdata");
         if (dispNode) {
-            for (int i = 0; i < dispNode->ChildNodes->Count; i++) {
-                _di_IXMLNode materialNode = dispNode->ChildNodes->Nodes[i];
-                String name = String(materialNode->Attributes["name"]);
+			for (int i = 0; i < dispNode->ChildNodes->Count; i++) {
+				_di_IXMLNode materialNode = dispNode->ChildNodes->Nodes[i];
+				String name = String(materialNode->Attributes["name"]).UpperCase();
                 String type = String(materialNode->Attributes["type"]);
-                String folder = (type == "Substrate") ? substrateFolder : materialsFolder;
-                String savePath = folder + name + ".txt";
-                // Проверяем, существует ли файл
+				String folder = (type == "Substrate") ? substrateFolder : materialsFolder;
+				String savePath = folder + name + ".txt";
+				// Проверяем, существует ли файл
                 if (!FileExists(savePath)) {
-                    TStringList *list = new TStringList();
-                    _di_IXMLNode tableNode = materialNode->ChildNodes->FindNode("complex_refractive_index_table");
-                    if (tableNode) {
-                        for (int j = 0; j < tableNode->ChildNodes->Count; j++) {
-                            _di_IXMLNode row = tableNode->ChildNodes->Nodes[j];
-                            String wavelength = String(row->Attributes["wavelength"]);
+					TStringList *list = new TStringList();
+					_di_IXMLNode tableNode = materialNode->ChildNodes->FindNode("complex_refractive_index_table");
+					if (tableNode) {
+						for (int j = 0; j < tableNode->ChildNodes->Count; j++) {
+							_di_IXMLNode row = tableNode->ChildNodes->Nodes[j];
+							String wavelength = String(row->Attributes["wavelength"]);
                             String n_value = String(row->Attributes["n"]);
                             try {
                                 // Убедимся, что используем правильный формат чисел
@@ -276,7 +272,7 @@ void __fastcall TForm1::LoadLMR1Click(TObject *Sender) {
                                 list->Add(FloatToStrF(w, ffFixed, 15, 6) + " " + FloatToStrF(n, ffFixed, 15, 6));
                             } catch (const Exception &e) {
                                 ShowMessage("Некорректное значение в XML: " + wavelength + " " + n_value + "\n" + e.Message);
-                            }
+							}
                         }
                         list->SaveToFile(savePath);
                     }
@@ -288,19 +284,19 @@ void __fastcall TForm1::LoadLMR1Click(TObject *Sender) {
             }
         }
         // Заполнить StringGrid слоями
-        _di_IXMLNode layerNode = rootNode->ChildNodes->FindNode("monitoringspreadsheet");
+		_di_IXMLNode layerNode = rootNode->ChildNodes->FindNode("monitoringspreadsheet");
         if (layerNode) {
             StringGrid1->RowCount = layerNode->ChildNodes->Count + 1;
-			StringGrid1->Cells[0][0] = "№";
-			StringGrid1->Cells[1][0] = "Материал";
+            StringGrid1->Cells[0][0] = "№";
+            StringGrid1->Cells[1][0] = "Материал";
 			StringGrid1->Cells[2][0] = "Толщина (нм)";
-			StringGrid1->Cells[3][0] = "Длина волны (нм)";
-			StringGrid1->Cells[4][0] = "№ т-слайда";
+            StringGrid1->Cells[3][0] = "Длина волны (нм)";
+            StringGrid1->Cells[4][0] = "№ т-слайда";
             for (int i = 0; i < layerNode->ChildNodes->Count; i++) {
                 _di_IXMLNode layer = layerNode->ChildNodes->Nodes[i];
-				StringGrid1->Cells[0][i+1] = String(layer->Attributes["number"]);
+                StringGrid1->Cells[0][i+1] = String(layer->Attributes["number"]);
                 StringGrid1->Cells[1][i+1] = String(layer->Attributes["material"]);
-                StringGrid1->Cells[2][i+1] = String(layer->Attributes["physical_thickness"]);
+				StringGrid1->Cells[2][i+1] = String(layer->Attributes["physical_thickness"]);
                 StringGrid1->Cells[3][i+1] = String(layer->Attributes["wavelength"]);
 				StringGrid1->Cells[4][i+1] = String(layer->Attributes["chip"]);
 			}
@@ -318,14 +314,14 @@ void __fastcall TForm1::StringGrid1SelectCell(TObject *Sender, int ACol, int ARo
 }
 // Начало перетаскивания (запоминаем строку)
 void __fastcall TForm1::StringGrid1MouseDown(TObject *Sender, TMouseButton Button, TShiftState Shift, int X, int Y) {
-    int Col, Row;
-    StringGrid1->MouseToCell(X, Y, Col, Row);
+	int Col, Row;
+	StringGrid1->MouseToCell(X, Y, Col, Row);
 
-    if (Col == 4 && Row > 0) { // Только 4-й столбец
-        DragStartRow = Row;  // Запоминаем начальную строку
-        DragEndRow = Row;
-        StringGrid1->Tag = Row;
-    }
+	if (Col == 4 && Row > 0) { // Только 4-й столбец
+		DragStartRow = Row;  // Запоминаем начальную строку
+		DragEndRow = Row;
+		StringGrid1->Tag = Row;
+	}
 }
 
 // Выделение строк при движении мыши
@@ -434,6 +430,7 @@ String FormatXML(const _di_IXMLNode node, int level = 0) {
 
 
 // Функция загрузки коэффициентов преломления из файла и форматирования под XML
+// Функция загрузки коэффициентов преломления из файла и форматирования под XML
 String LoadRefractiveIndexData(String filePath) {
 	TStringList *fileData = new TStringList();
     String xmlData;
@@ -468,13 +465,13 @@ String LoadRefractiveIndexData(String filePath) {
 
 
 void __fastcall TForm1::SaveLMR1Click(TObject *Sender) {
-	if (SaveDialog1->Execute()) {
-		String filePath = SaveDialog1->FileName;
-		_di_IXMLDocument xmlDoc = NewXMLDocument();
-		xmlDoc->Active = true;
+    if (SaveDialog1->Execute()) {
+        String filePath = SaveDialog1->FileName;
+        _di_IXMLDocument xmlDoc = NewXMLDocument();
+        xmlDoc->Active = true;
 
-        // === Создаем корневой узел ===
-		_di_IXMLNode rootNode = xmlDoc->CreateNode("monitoringreport", ntElement);
+        // Создаем корневой узел
+        _di_IXMLNode rootNode = xmlDoc->CreateNode("monitoringreport", ntElement);
         xmlDoc->DocumentElement = rootNode;
 
         rootNode->SetAttribute("name", "FA 525(95)_0");
@@ -482,15 +479,15 @@ void __fastcall TForm1::SaveLMR1Click(TObject *Sender) {
         rootNode->SetAttribute("version", "1.00");
         rootNode->SetAttribute("date", FormatDateTime("yyyy-mm-ddThh:nn:ss.zzz+03:00", Now()));
         rootNode->SetAttribute("uuid", "02f62b91-8771-4f31-8bb4-e10c02e72871");
-		rootNode->SetAttribute("xmlns:xsi", "http://www.w3.org/2001/XMLSchema-instance");
+        rootNode->SetAttribute("xmlns:xsi", "http://www.w3.org/2001/XMLSchema-instance");
         rootNode->SetAttribute("xsi:noNamespaceSchemaLocation", "LeyboldMonitoringReport.xsd");
 
-        // === Узел для дисперсионных данных ===
+        // Узел для дисперсионных данных
         _di_IXMLNode dispersionsNode = rootNode->AddChild("dispersionsdata");
 
         std::set<AnsiString> addedMaterials;
 
-		// === Добавляем подложку ===
+        // Добавляем подложку
         String substrateName = EditSubstrate->Text;
         if (!substrateName.IsEmpty() && addedMaterials.count(substrateName) == 0) {
             _di_IXMLNode substrateNode = dispersionsNode->AddChild("dispersion");
@@ -498,15 +495,16 @@ void __fastcall TForm1::SaveLMR1Click(TObject *Sender) {
             substrateNode->SetAttribute("material", substrateName);
             substrateNode->SetAttribute("type", "Substrate");
 
-			TStringList *fileData = new TStringList();
+            TStringList *fileData = new TStringList();
             double minWavelength = DBL_MAX;
             double maxWavelength = 0;
 
             try {
-                if (FileExists("Substrate/" + substrateName + ".txt")) {
-                    fileData->LoadFromFile("Substrate/" + substrateName + ".txt");
+                String substratePath = ExtractFilePath(Application->ExeName) + "Substrate\\" + substrateName + ".txt";
+                if (FileExists(substratePath)) {
+                    fileData->LoadFromFile(substratePath);
 
-					for (int i = 0; i < fileData->Count; i++) {
+                    for (int i = 0; i < fileData->Count; i++) {
                         TStringList *row = new TStringList();
                         row->Delimiter = ' ';
                         row->StrictDelimiter = true;
@@ -514,7 +512,7 @@ void __fastcall TForm1::SaveLMR1Click(TObject *Sender) {
 
                         if (row->Count >= 2) {
                             double wavelength = StrToFloat(row->Strings[0]);
-							minWavelength = Min(minWavelength, wavelength);
+                            minWavelength = Min(minWavelength, wavelength);
                             maxWavelength = Max(maxWavelength, wavelength);
                         }
                         delete row;
@@ -522,7 +520,7 @@ void __fastcall TForm1::SaveLMR1Click(TObject *Sender) {
 
                     _di_IXMLNode rangeNode = substrateNode->AddChild("range");
                     rangeNode->SetAttribute("min", FloatToStrF(minWavelength, ffFixed, 10, 1));
-					rangeNode->SetAttribute("max", FloatToStrF(maxWavelength, ffFixed, 10, 1));
+                    rangeNode->SetAttribute("max", FloatToStrF(maxWavelength, ffFixed, 10, 1));
 
                     _di_IXMLNode tableNode = substrateNode->AddChild("complex_refractive_index_table");
 
@@ -530,7 +528,7 @@ void __fastcall TForm1::SaveLMR1Click(TObject *Sender) {
                         TStringList *row = new TStringList();
                         row->Delimiter = ' ';
                         row->StrictDelimiter = true;
-						row->DelimitedText = fileData->Strings[i];
+                        row->DelimitedText = fileData->Strings[i];
 
                         if (row->Count >= 2) {
                             _di_IXMLNode rowNode = tableNode->AddChild("row");
@@ -538,23 +536,25 @@ void __fastcall TForm1::SaveLMR1Click(TObject *Sender) {
                             rowNode->SetAttribute("n", FloatToStrF(StrToFloat(row->Strings[1]), ffFixed, 10, 4));
                             rowNode->SetAttribute("k", "0");
                         }
-						delete row;
+                        delete row;
                     }
+                } else {
+                    ShowMessage("Файл подложки не найден: " + substratePath);
                 }
             } __finally {
                 delete fileData;
             }
 
             addedMaterials.insert(substrateName);
-		}
+        }
 
-        // === Добавляем материалы ===
+        // Добавляем материалы
         for (int i = 1; i < StringGrid1->RowCount; i++) {
             String materialName = StringGrid1->Cells[1][i];
 
             if (!materialName.IsEmpty() && addedMaterials.count(materialName) == 0) {
                 _di_IXMLNode materialNode = dispersionsNode->AddChild("dispersion");
-				materialNode->SetAttribute("name", materialName);
+                materialNode->SetAttribute("name", materialName);
                 materialNode->SetAttribute("material", materialName);
                 materialNode->SetAttribute("type", "Layer");
 
@@ -562,9 +562,10 @@ void __fastcall TForm1::SaveLMR1Click(TObject *Sender) {
                 double minWavelength = DBL_MAX;
                 double maxWavelength = 0;
 
-				try {
-                    if (FileExists("Materials/" + materialName + ".txt")) {
-                        fileData->LoadFromFile("Materials/" + materialName + ".txt");
+                try {
+                    String materialPath = ExtractFilePath(Application->ExeName) + "Materials\\" + materialName + ".txt";
+                    if (FileExists(materialPath)) {
+                        fileData->LoadFromFile(materialPath);
 
                         for (int i = 0; i < fileData->Count; i++) {
                             TStringList *row = new TStringList();
@@ -578,7 +579,7 @@ void __fastcall TForm1::SaveLMR1Click(TObject *Sender) {
                                 maxWavelength = Max(maxWavelength, wavelength);
                             }
                             delete row;
-						}
+                        }
 
                         _di_IXMLNode rangeNode = materialNode->AddChild("range");
                         rangeNode->SetAttribute("min", FloatToStrF(minWavelength, ffFixed, 10, 1));
@@ -586,82 +587,81 @@ void __fastcall TForm1::SaveLMR1Click(TObject *Sender) {
 
                         _di_IXMLNode tableNode = materialNode->AddChild("complex_refractive_index_table");
 
-						for (int i = 0; i < fileData->Count; i++) {
+                        for (int i = 0; i < fileData->Count; i++) {
                             TStringList *row = new TStringList();
                             row->Delimiter = ' ';
                             row->StrictDelimiter = true;
-                            row->DelimitedText = fileData->Strings[i];
+							row->DelimitedText = fileData->Strings[i];
 
                             if (row->Count >= 2) {
                                 _di_IXMLNode rowNode = tableNode->AddChild("row");
-								rowNode->SetAttribute("wavelength", FloatToStrF(StrToFloat(row->Strings[0]), ffFixed, 10, 1));
+                                rowNode->SetAttribute("wavelength", FloatToStrF(StrToFloat(row->Strings[0]), ffFixed, 10, 1));
                                 rowNode->SetAttribute("n", FloatToStrF(StrToFloat(row->Strings[1]), ffFixed, 10, 4));
                                 rowNode->SetAttribute("k", "0");
                             }
                             delete row;
                         }
+                    } else {
+                        ShowMessage("Файл материала не найден: " + materialPath);
                     }
                 } __finally {
-					delete fileData;
+                    delete fileData;
                 }
 
                 addedMaterials.insert(materialName);
             }
-		}
+        }
 
-		// === Слои ===
-                _di_IXMLNode designNode = rootNode->AddChild("design");
+        // Слои
+        _di_IXMLNode designNode = rootNode->AddChild("design");
         _di_IXMLNode matchAngleNode = designNode->AddChild("match_angle");
         matchAngleNode->SetAttribute("unit", "deg");
         matchAngleNode->Text = "0";
 
-		_di_IXMLNode layersNode = rootNode->AddChild("monitoringspreadsheet");
+        _di_IXMLNode layersNode = rootNode->AddChild("monitoringspreadsheet");
 
+        for (int i = 1; i < StringGrid1->RowCount; i++) {
+            _di_IXMLNode layerNode = layersNode->AddChild("layer");
+            layerNode->SetAttribute("number", StringGrid1->Cells[0][i]);
+            layerNode->SetAttribute("material", StringGrid1->Cells[1][i]);
+            layerNode->SetAttribute("wavelength", StringGrid1->Cells[3][i]);
+            layerNode->SetAttribute("physical_thickness", StringGrid1->Cells[2][i]);
 
-		for (int i = 1; i < StringGrid1->RowCount; i++) {
-			_di_IXMLNode layerNode = layersNode->AddChild("layer");
-			layerNode->SetAttribute("number", StringGrid1->Cells[0][i]);
-			layerNode->SetAttribute("material", StringGrid1->Cells[1][i]);
-			layerNode->SetAttribute("wavelength", StringGrid1->Cells[3][i]);
-			layerNode->SetAttribute("physical_thickness", StringGrid1->Cells[2][i]);
-
-
-
-			double lambda = StrToFloat(StringGrid1->Cells[3][i]);
-			String material = StringGrid1->Cells[1][i];
+            double lambda = StrToFloat(StringGrid1->Cells[3][i]);
+            String material = StringGrid1->Cells[1][i];
             double physical_thickness = StrToFloat(StringGrid1->Cells[2][i]);
 
-			Complex refractiveIndex = GetRefractiveIndex(material, lambda);
-			double n = refractiveIndex.real();
+            Complex refractiveIndex = GetRefractiveIndex(material, lambda);
+            double n = refractiveIndex.real();
 
-			double optical_thickness = 4 * (n * physical_thickness) / lambda;
+            double optical_thickness = 4 * (n * physical_thickness) / lambda;
 
-			layerNode->SetAttribute("optical_thickness", FloatToStrF(optical_thickness, ffFixed, 15, 6));
-			layerNode->SetAttribute("refractive_index", FloatToStrF(n, ffFixed, 15, 6));
-			layerNode->SetAttribute("chip", StringGrid1->Cells[4][i]);
-		}
+            layerNode->SetAttribute("optical_thickness", FloatToStrF(optical_thickness, ffFixed, 15, 6));
+            layerNode->SetAttribute("refractive_index", FloatToStrF(n, ffFixed, 15, 6));
+            layerNode->SetAttribute("chip", StringGrid1->Cells[4][i]);
+        }
 
-		 String formattedXML = FormatXML(xmlDoc->DocumentElement);
+        String formattedXML = FormatXML(xmlDoc->DocumentElement);
         TStringList *output = new TStringList();
         try {
-			output->Text = formattedXML;
+            output->Text = formattedXML;
             output->SaveToFile(filePath);
         } __finally {
             delete output;
-		}
-		ShowMessage("Файл сохранен: " + filePath);
-	}
+        }
+        ShowMessage("Файл сохранен: " + filePath);
+    }
 }
 
 
 void __fastcall TForm1::MenuItemChangeThicknessClick(TObject *Sender)
 {
-    // Создаем форму для ввода процента
-    TForm3 *Form3 = new TForm3(this);
+	// Создаем форму для ввода процента
+	TForm3 *Form3 = new TForm3(this);
 
-    // Показываем форму модально
+	// Показываем форму модально
 	if (Form3->ShowModal() == mrOk) {
-        try {
+		try {
 			double percentage = Form3->Percentage; // Получаем процент
 
             // Проходим по всем строкам в колонке "Толщина слоя"
@@ -801,7 +801,7 @@ void __fastcall TForm1::ImportTFD1Click(TObject *Sender) {
 		// Проверяем наличие подложки в папке Substrate
 		String substratePath = ExtractFilePath(Application->ExeName) + "Substrate\\" + substrateName + ".txt";
 		if (!FileExists(substratePath)) {
-            ShowMessage("Ошибка: Файл подложки не найден: " + substratePath);
+			ShowMessage("Ошибка: Файл подложки не найден: " + substratePath);
 			return;
 		}
 
@@ -824,7 +824,7 @@ void __fastcall TForm1::ImportTFD1Click(TObject *Sender) {
 		// Заполняем таблицу
 		EditSubstrate->Text = substrateName; // Устанавливаем подложку
 		StringGrid1->RowCount = materials.size() + 1; // Увеличиваем количество строк
-        StringGrid1->Cells[0][0] = "№";
+		StringGrid1->Cells[0][0] = "№";
 			StringGrid1->Cells[1][0] = "Материал";
 			StringGrid1->Cells[2][0] = "Толщина (нм)";
 			StringGrid1->Cells[3][0] = "Длина волны (нм)";
@@ -852,16 +852,98 @@ void __fastcall TForm1::ImportTFD1Click(TObject *Sender) {
 
 void __fastcall TForm1::ButtonClearGraphClick(TObject *Sender)
 {            // Очищаем все серии на графике
-    Chart1->RemoveAllSeries();
-    savedSeries.clear(); // Очищаем сохраненные серии
+	Chart1->RemoveAllSeries();
+	savedSeries.clear(); // Очищаем сохраненные серии
 
-    // Создаем новую серию для графика
+	// Создаем новую серию для графика
 	 Series1 = new TFastLineSeries(Chart1);
-    Series1->Title = "График"; // Название серии
-    Series1->Color = clBlue;   // Цвет линии
+	Series1->Title = "График"; // Название серии
+	Series1->Color = clBlue;   // Цвет линии
 	Chart1->AddSeries(Series1); // Добавляем серию на график
 
 
 }
+//---------------------------------------------------------------------------
+void __fastcall TForm1::ImportDataFromFile(TObject *Sender) {
+	if (!OpenDialog1->Execute()) {
+		return;
+	}
+
+	String filePath = OpenDialog1->FileName;
+	TStringList *fileData = new TStringList();
+
+    try {
+        fileData->LoadFromFile(filePath);
+
+        String substrateName;
+        std::vector<String> materials;
+        std::vector<double> thicknesses;
+        std::vector<int> layerNumbers;
+        bool airEncountered = false;
+		double lastThickness = -1.0;
+
+        for (int i = 0; i < fileData->Count; i++) {
+            String line = fileData->Strings[i].Trim();
+            if (line.IsEmpty()) continue;
+
+            TStringList *parts = new TStringList();
+            try {
+				parts->Delimiter = ';';
+                parts->StrictDelimiter = true;
+                parts->DelimitedText = line;
+
+                if (parts->Count >= 6) {
+                    String material = parts->Strings[0].Trim().UpperCase(); // Приводим к нижнему регистру
+                    double thickness = StrToFloatDef(parts->Strings[1].Trim(), 0.0);
+                    int layerNumber = StrToIntDef(parts->Strings[2].Trim(), 0);
+
+                    material = material.SubString(1, material.Length() - 4);
+
+                    if (material == "air") {
+                        break;
+                    }
+
+                    if (i == 0) {
+						substrateName = material;
+					} else if (thickness != lastThickness) {
+						materials.push_back(material);
+						thicknesses.push_back(thickness);
+						layerNumbers.push_back(layerNumber);
+						lastThickness = thickness;
+                    }
+				}
+            } catch (...) {
+				delete parts;
+			}
+		}
+
+		EditSubstrate->Text = substrateName.UpperCase(); // Приводим к нижнему регистру
+		StringGrid1->RowCount = materials.size();
+        StringGrid1->Cells[0][0] = "№";
+		StringGrid1->Cells[1][0] = "Материал";
+		StringGrid1->Cells[2][0] = "Толщина (нм)";
+		StringGrid1->Cells[3][0] = "Длина волны (нм)";
+		StringGrid1->Cells[4][0] = "№ т-слайда";
+
+        for (size_t i = 0; i < materials.size(); i++) {
+			StringGrid1->Cells[0][i + 1] = IntToStr(layerNumbers[i]);
+            StringGrid1->Cells[1][i + 1] = materials[i];
+			StringGrid1->Cells[2][i + 1] = FloatToStrF(thicknesses[i], ffFixed, 15, 6);
+			StringGrid1->Cells[3][i + 1] = 550;
+            StringGrid1->Cells[4][i + 1] = 1;
+		}
+
+        ShowMessage("Импорт завершен успешно!");
+		LoadRefractiveIndices();
+	} catch (...) {
+        ShowMessage("Ошибка при импорте файла");
+	}
+
+	delete fileData;
+}
+
+
+
+
 //---------------------------------------------------------------------------
 
