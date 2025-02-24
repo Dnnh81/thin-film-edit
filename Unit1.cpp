@@ -295,7 +295,7 @@ void __fastcall TForm1::LoadLMR1Click(TObject *Sender) {
             for (int i = 0; i < layerNode->ChildNodes->Count; i++) {
                 _di_IXMLNode layer = layerNode->ChildNodes->Nodes[i];
                 StringGrid1->Cells[0][i+1] = String(layer->Attributes["number"]);
-                StringGrid1->Cells[1][i+1] = String(layer->Attributes["material"]);
+				StringGrid1->Cells[1][i+1] = String(layer->Attributes["material"]).UpperCase();
 				StringGrid1->Cells[2][i+1] = String(layer->Attributes["physical_thickness"]);
                 StringGrid1->Cells[3][i+1] = String(layer->Attributes["wavelength"]);
 				StringGrid1->Cells[4][i+1] = String(layer->Attributes["chip"]);
@@ -755,7 +755,7 @@ void __fastcall TForm1::ImportTFD1Click(TObject *Sender) {
 					parts->StrictDelimiter = true;
 					parts->DelimitedText = line;
 					if (parts->Count >= 3) {
-						substrateName = parts->Strings[2].Trim(); // Берем второе значение (BK7)
+						substrateName = parts->Strings[2].Trim().UpperCase(); // Берем второе значение (BK7)
 					}
 				} catch (...) {
 					delete parts;
@@ -786,7 +786,7 @@ void __fastcall TForm1::ImportTFD1Click(TObject *Sender) {
 					parts->DelimitedText = line;
 
 					if (parts->Count >= 4) {
-						String material = parts->Strings[2].Trim();
+						String material = parts->Strings[2].Trim().UpperCase();
 						double thickness = StrToFloatDef(parts->Strings[4].Trim(), 0.0);
 
 						materials.push_back(material);
