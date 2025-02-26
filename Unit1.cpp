@@ -14,7 +14,8 @@
 #include "Unit1.h"
 #include "Unit2.h"
 #include "Unit3.h"
-#include <Xml.XMLDoc.hpp>
+ #include <Xml.XMLIntf.hpp>
+#include <System.IOUtils.hpp>
 #include <set>
 #pragma package(smart_init)
 #pragma resource "*.dfm"
@@ -29,11 +30,34 @@ std::vector<TLineSeries*> savedSeries;
 void LoadRefractiveIndices();
 
 __fastcall TForm1::TForm1(TComponent* Owner) : TForm(Owner) {
-	ComboBoxCalcType->Items->Add("Пропускание");
-	ComboBoxCalcType->Items->Add("Отражение");
+	ComboBoxCalcType->Items->Add("T");
+	ComboBoxCalcType->Items->Add("R");
+	ComboBoxCalcType->Items->Add("T Backside");
+	ComboBoxCalcType->Items->Add("R Backside");
 	ComboBoxCalcType->ItemIndex = 0; // По умолчанию выбрано пропускание
-	// Удаление предварительной загрузки данных
-	// LoadRefractiveIndices();
+	 // Создаем линию линейки
+    RulerLine = new TLineSeries(this);
+    RulerLine->ParentChart = Chart1;
+    RulerLine->SeriesColor = clRed;
+    RulerLine->LinePen->Width = 2;
+    RulerLine->Active = false; // По умолчанию неактивна
+
+
+    // Создаем подпись для линейки
+    RulerLabel = new TLabel(this);
+    RulerLabel->Parent = Chart1;
+    RulerLabel->Visible = false;
+    RulerLabel->Transparent = false;
+    RulerLabel->Font->Color = clBlack;
+    RulerLabel->Caption = "";
+	RulerLabel->Left = Chart1->Width - RulerLabel->Width - 40; // Отступ справа
+	RulerLabel->Top = 5; // Отступ сверху
+	RulerLabel->Font->Size = 10; // Увеличиваем шрифт
+	isRulerVisible = false;
+	// Настройка TrackBar
+
+	TrackBarRuler->OnChange = TrackBarRulerOnChange;
+	CheckBox1->OnClick = CheckBox1Click;
 
 
 }
@@ -55,8 +79,8 @@ void LoadRefractiveIndices() {
                 tokens->StrictDelimiter = true;
                 tokens->DelimitedText = MaterialData->Strings[i];
                 if (tokens->Count >= 2) {
-                    try {
-                        double wavelength = StrToFloat(tokens->Strings[0]);
+					try {
+						double wavelength = StrToFloat(tokens->Strings[0]);
                         double n_value = StrToFloat(tokens->Strings[1]);
                         double k_value = (tokens->Count > 2) ? StrToFloat(tokens->Strings[2]) : 0.0;
                         values.push_back(make_pair(wavelength, Complex(n_value, k_value))); // Учет коэффициента поглощения
@@ -465,41 +489,46 @@ String LoadRefractiveIndexData(String filePath) {
 
 
 void __fastcall TForm1::SaveLMR1Click(TObject *Sender) {
-    if (SaveDialog1->Execute()) {
-        String filePath = SaveDialog1->FileName;
-        _di_IXMLDocument xmlDoc = NewXMLDocument();
-        xmlDoc->Active = true;
+       TSaveDialog *saveDialog = new TSaveDialog(this);
+    saveDialog->Filter = "LMR Files (*.lmr)|*.lmr"; // Фильтр для файлов .lmr
+    saveDialog->DefaultExt = "lmr"; // Расширение по умолчанию
+	saveDialog->Options << ofOverwritePrompt; // Предупреждение о перезаписи файла
+	if (SaveDialog1->Execute()) {
+		String filePath = SaveDialog1->FileName;
+		filePath = ChangeFileExt(filePath, ".lmr");
+		_di_IXMLDocument xmlDoc = NewXMLDocument();
+		xmlDoc->Active = true;
 
-        // Создаем корневой узел
-        _di_IXMLNode rootNode = xmlDoc->CreateNode("monitoringreport", ntElement);
-        xmlDoc->DocumentElement = rootNode;
+		// Создаем корневой узел
+		_di_IXMLNode rootNode = xmlDoc->CreateNode("monitoringreport", ntElement);
+		xmlDoc->DocumentElement = rootNode;
 
-        rootNode->SetAttribute("name", "FA 525(95)_0");
-        rootNode->SetAttribute("program", "OptiLayer");
+		rootNode->SetAttribute("name", "FA 525(95)_0");
+		rootNode->SetAttribute("program", "OptiLayer");
         rootNode->SetAttribute("version", "1.00");
-        rootNode->SetAttribute("date", FormatDateTime("yyyy-mm-ddThh:nn:ss.zzz+03:00", Now()));
-        rootNode->SetAttribute("uuid", "02f62b91-8771-4f31-8bb4-e10c02e72871");
-        rootNode->SetAttribute("xmlns:xsi", "http://www.w3.org/2001/XMLSchema-instance");
-        rootNode->SetAttribute("xsi:noNamespaceSchemaLocation", "LeyboldMonitoringReport.xsd");
+		rootNode->SetAttribute("date", FormatDateTime("yyyy-mm-ddThh:nn:ss.zzz+03:00", Now()));
+		rootNode->SetAttribute("uuid", "02f62b91-8771-4f31-8bb4-e10c02e72871");
+		rootNode->SetAttribute("xmlns:xsi", "http://www.w3.org/2001/XMLSchema-instance");
+		rootNode->SetAttribute("xsi:noNamespaceSchemaLocation", "LeyboldMonitoringReport.xsd");
 
-        // Узел для дисперсионных данных
-        _di_IXMLNode dispersionsNode = rootNode->AddChild("dispersionsdata");
+		// Узел для дисперсионных данных
+		_di_IXMLNode dispersionsNode = rootNode->AddChild("dispersionsdata");
 
-        std::set<AnsiString> addedMaterials;
+		std::set<AnsiString> addedMaterials;
 
-        // Добавляем подложку
-        String substrateName = EditSubstrate->Text;
-        if (!substrateName.IsEmpty() && addedMaterials.count(substrateName) == 0) {
-            _di_IXMLNode substrateNode = dispersionsNode->AddChild("dispersion");
-            substrateNode->SetAttribute("name", substrateName);
-            substrateNode->SetAttribute("material", substrateName);
-            substrateNode->SetAttribute("type", "Substrate");
+		// Добавляем подложку
+		String substrateName = EditSubstrate->Text;
+		if (!substrateName.IsEmpty() && addedMaterials.count(substrateName) == 0) {
+			_di_IXMLNode substrateNode = dispersionsNode->AddChild("dispersion");
+			substrateNode->SetAttribute("name", substrateName);
+			substrateNode->SetAttribute("material", substrateName);
+			substrateNode->SetAttribute("type", "Substrate");
 
             TStringList *fileData = new TStringList();
             double minWavelength = DBL_MAX;
             double maxWavelength = 0;
 
-            try {
+			try {
                 String substratePath = ExtractFilePath(Application->ExeName) + "Substrate\\" + substrateName + ".txt";
                 if (FileExists(substratePath)) {
                     fileData->LoadFromFile(substratePath);
@@ -507,7 +536,7 @@ void __fastcall TForm1::SaveLMR1Click(TObject *Sender) {
                     for (int i = 0; i < fileData->Count; i++) {
                         TStringList *row = new TStringList();
                         row->Delimiter = ' ';
-                        row->StrictDelimiter = true;
+						row->StrictDelimiter = true;
                         row->DelimitedText = fileData->Strings[i];
 
                         if (row->Count >= 2) {
@@ -515,7 +544,7 @@ void __fastcall TForm1::SaveLMR1Click(TObject *Sender) {
                             minWavelength = Min(minWavelength, wavelength);
                             maxWavelength = Max(maxWavelength, wavelength);
                         }
-                        delete row;
+						delete row;
                     }
 
                     _di_IXMLNode rangeNode = substrateNode->AddChild("range");
@@ -531,7 +560,7 @@ void __fastcall TForm1::SaveLMR1Click(TObject *Sender) {
                         row->DelimitedText = fileData->Strings[i];
 
                         if (row->Count >= 2) {
-                            _di_IXMLNode rowNode = tableNode->AddChild("row");
+							_di_IXMLNode rowNode = tableNode->AddChild("row");
                             rowNode->SetAttribute("wavelength", FloatToStrF(StrToFloat(row->Strings[0]), ffFixed, 10, 1));
                             rowNode->SetAttribute("n", FloatToStrF(StrToFloat(row->Strings[1]), ffFixed, 10, 4));
                             rowNode->SetAttribute("k", "0");
@@ -539,7 +568,7 @@ void __fastcall TForm1::SaveLMR1Click(TObject *Sender) {
                         delete row;
                     }
                 } else {
-                    ShowMessage("Файл подложки не найден: " + substratePath);
+					ShowMessage("Файл подложки не найден: " + substratePath);
                 }
             } __finally {
                 delete fileData;
@@ -555,7 +584,7 @@ void __fastcall TForm1::SaveLMR1Click(TObject *Sender) {
             if (!materialName.IsEmpty() && addedMaterials.count(materialName) == 0) {
                 _di_IXMLNode materialNode = dispersionsNode->AddChild("dispersion");
                 materialNode->SetAttribute("name", materialName);
-                materialNode->SetAttribute("material", materialName);
+				materialNode->SetAttribute("material", materialName);
                 materialNode->SetAttribute("type", "Layer");
 
                 TStringList *fileData = new TStringList();
@@ -563,7 +592,7 @@ void __fastcall TForm1::SaveLMR1Click(TObject *Sender) {
                 double maxWavelength = 0;
 
                 try {
-                    String materialPath = ExtractFilePath(Application->ExeName) + "Materials\\" + materialName + ".txt";
+					String materialPath = ExtractFilePath(Application->ExeName) + "Materials\\" + materialName + ".txt";
                     if (FileExists(materialPath)) {
                         fileData->LoadFromFile(materialPath);
 
@@ -585,11 +614,11 @@ void __fastcall TForm1::SaveLMR1Click(TObject *Sender) {
                         rangeNode->SetAttribute("min", FloatToStrF(minWavelength, ffFixed, 10, 1));
                         rangeNode->SetAttribute("max", FloatToStrF(maxWavelength, ffFixed, 10, 1));
 
-                        _di_IXMLNode tableNode = materialNode->AddChild("complex_refractive_index_table");
+						_di_IXMLNode tableNode = materialNode->AddChild("complex_refractive_index_table");
 
-                        for (int i = 0; i < fileData->Count; i++) {
-                            TStringList *row = new TStringList();
-                            row->Delimiter = ' ';
+						for (int i = 0; i < fileData->Count; i++) {
+							TStringList *row = new TStringList();
+							row->Delimiter = ' ';
                             row->StrictDelimiter = true;
 							row->DelimitedText = fileData->Strings[i];
 
@@ -598,7 +627,7 @@ void __fastcall TForm1::SaveLMR1Click(TObject *Sender) {
                                 rowNode->SetAttribute("wavelength", FloatToStrF(StrToFloat(row->Strings[0]), ffFixed, 10, 1));
                                 rowNode->SetAttribute("n", FloatToStrF(StrToFloat(row->Strings[1]), ffFixed, 10, 4));
                                 rowNode->SetAttribute("k", "0");
-                            }
+							}
                             delete row;
                         }
                     } else {
@@ -616,25 +645,25 @@ void __fastcall TForm1::SaveLMR1Click(TObject *Sender) {
         _di_IXMLNode designNode = rootNode->AddChild("design");
         _di_IXMLNode matchAngleNode = designNode->AddChild("match_angle");
         matchAngleNode->SetAttribute("unit", "deg");
-        matchAngleNode->Text = "0";
+		matchAngleNode->Text = "0";
 
         _di_IXMLNode layersNode = rootNode->AddChild("monitoringspreadsheet");
 
         for (int i = 1; i < StringGrid1->RowCount; i++) {
             _di_IXMLNode layerNode = layersNode->AddChild("layer");
             layerNode->SetAttribute("number", StringGrid1->Cells[0][i]);
-            layerNode->SetAttribute("material", StringGrid1->Cells[1][i]);
-            layerNode->SetAttribute("wavelength", StringGrid1->Cells[3][i]);
-            layerNode->SetAttribute("physical_thickness", StringGrid1->Cells[2][i]);
+			layerNode->SetAttribute("material", StringGrid1->Cells[1][i]);
+			layerNode->SetAttribute("wavelength", StringGrid1->Cells[3][i]);
+			layerNode->SetAttribute("physical_thickness", StringGrid1->Cells[2][i]);
 
-            double lambda = StrToFloat(StringGrid1->Cells[3][i]);
-            String material = StringGrid1->Cells[1][i];
-            double physical_thickness = StrToFloat(StringGrid1->Cells[2][i]);
+			double lambda = StrToFloat(StringGrid1->Cells[3][i]);
+			String material = StringGrid1->Cells[1][i];
+			double physical_thickness = StrToFloat(StringGrid1->Cells[2][i]);
 
-            Complex refractiveIndex = GetRefractiveIndex(material, lambda);
-            double n = refractiveIndex.real();
+			Complex refractiveIndex = GetRefractiveIndex(material, lambda);
+			double n = refractiveIndex.real();
 
-            double optical_thickness = 4 * (n * physical_thickness) / lambda;
+			double optical_thickness = 4 * (n * physical_thickness) / lambda;
 
             layerNode->SetAttribute("optical_thickness", FloatToStrF(optical_thickness, ffFixed, 15, 6));
             layerNode->SetAttribute("refractive_index", FloatToStrF(n, ffFixed, 15, 6));
@@ -646,11 +675,11 @@ void __fastcall TForm1::SaveLMR1Click(TObject *Sender) {
         try {
             output->Text = formattedXML;
             output->SaveToFile(filePath);
-        } __finally {
-            delete output;
+		} __finally {
+			delete output;
         }
         ShowMessage("Файл сохранен: " + filePath);
-    }
+	}
 }
 
 
@@ -850,18 +879,29 @@ void __fastcall TForm1::ImportTFD1Click(TObject *Sender) {
 
 
 
-void __fastcall TForm1::ButtonClearGraphClick(TObject *Sender)
-{            // Очищаем все серии на графике
-	Chart1->RemoveAllSeries();
-	savedSeries.clear(); // Очищаем сохраненные серии
+void __fastcall TForm1::ButtonClearGraphClick(TObject *Sender) {
+    // Сохраняем RulerLine
+    TLineSeries *rulerLine = RulerLine;
 
-	// Создаем новую серию для графика
-	 Series1 = new TFastLineSeries(Chart1);
-	Series1->Title = "График"; // Название серии
-	Series1->Color = clBlue;   // Цвет линии
-	Chart1->AddSeries(Series1); // Добавляем серию на график
+    // Очищаем все серии на графике, кроме RulerLine
+    for (int i = Chart1->SeriesCount() - 1; i >= 0; i--) {
+        if (Chart1->Series[i] != rulerLine) {
+            Chart1->RemoveSeries(Chart1->Series[i]);
+        }
+    }
 
+    savedSeries.clear(); // Очищаем сохраненные серии
 
+    // Создаем новую серию для графика
+    Series1 = new TFastLineSeries(Chart1);
+    Series1->Title = "График"; // Название серии
+    Series1->Color = clBlue;   // Цвет линии
+    Chart1->AddSeries(Series1); // Добавляем серию на график
+
+    // Восстанавливаем RulerLine, если она была удалена
+    if (rulerLine && !Chart1->SeriesList->Contains(rulerLine)) {
+        Chart1->AddSeries(rulerLine);
+    }
 }
 //---------------------------------------------------------------------------
 void __fastcall TForm1::ImportDataFromFile(TObject *Sender) {
@@ -933,10 +973,10 @@ void __fastcall TForm1::ImportDataFromFile(TObject *Sender) {
             StringGrid1->Cells[4][i + 1] = 1;
 		}
 
-        ShowMessage("Импорт завершен успешно!");
+		ShowMessage("Импорт завершен успешно!");
 		LoadRefractiveIndices();
 	} catch (...) {
-        ShowMessage("Ошибка при импорте файла");
+		ShowMessage("Ошибка при импорте файла");
 	}
 
 	delete fileData;
@@ -944,6 +984,113 @@ void __fastcall TForm1::ImportDataFromFile(TObject *Sender) {
 
 
 
-
 //---------------------------------------------------------------------------
 
+void TForm1::UpdateTrackBarRange() {
+    // Получаем значения из EditLambdaMin и EditLambdaMax
+    double minLambda = StrToFloat(EditLambdaMin->Text);
+    double maxLambda = StrToFloat(EditLambdaMax->Text);
+
+    // Устанавливаем Min и Max для TrackBar
+    TrackBarRuler->Min = static_cast<int>(minLambda);
+    TrackBarRuler->Max = static_cast<int>(maxLambda);
+
+    // Устанавливаем начальное положение TrackBar
+    TrackBarRuler->Position = static_cast<int>(minLambda);
+}
+
+
+void __fastcall TForm1::CheckBox1Click(TObject *Sender) {
+	isRulerVisible = CheckBox1->Checked;
+	RulerLine->Active = isRulerVisible;
+
+	RulerLabel->Visible = isRulerVisible;
+	 TrackBarRuler->Visible = isRulerVisible;
+	if (isRulerVisible) {
+        // Обновляем диапазон TrackBar
+        UpdateTrackBarRange();
+			RulerLabel->Left = Chart1->Width - RulerLabel->Width - 150; // Отступ справа
+		RulerLabel->Top = 5; // Отступ сверху
+        // Устанавливаем начальное положение линейки
+        double xValue = StrToFloat(EditLambdaMin->Text);
+		UpdateRulerPosition(xValue);
+		}
+}
+
+void __fastcall TForm1::TrackBarRulerOnChange(TObject *Sender) {
+    // Получаем текущее значение TrackBar
+    int position = TrackBarRuler->Position;
+
+    // Преобразуем значение TrackBar в координату X на графике
+    double minX = StrToFloat(EditLambdaMin->Text);
+	double maxX = StrToFloat(EditLambdaMax->Text);
+	double xValue = minX + (maxX - minX) * ((position - TrackBarRuler->Min) / (double)(TrackBarRuler->Max - TrackBarRuler->Min));
+
+	// Обновляем положение линейки
+	UpdateRulerPosition(xValue);
+}
+
+void TForm1::UpdateRulerPosition(double xValue) {
+	// Очищаем подпись
+	RulerLabel->Caption = "";
+
+	// Обновляем положение линейки
+	RulerLine->Clear();
+	RulerLine->AddXY(xValue, Chart1->LeftAxis->Minimum);
+	RulerLine->AddXY(xValue, Chart1->LeftAxis->Maximum);
+
+	// Проходим по всем сериям на графике
+	for (int seriesIndex = 0; seriesIndex < Chart1->SeriesCount(); seriesIndex++) {
+		TChartSeries *series = Chart1->Series[seriesIndex];
+
+		// Пропускаем RulerLine (линейку)
+		if (series == RulerLine) {
+			continue;
+		}
+
+		// Пропускаем пустые серии
+		if (series->Count() == 0) {
+            continue;
+		}
+
+        // Находим ближайшую точку на графике
+        double minDistance = DBL_MAX;
+        double closestY = 0;
+        for (int i = 0; i < series->Count(); i++) {
+            double distance = abs(series->XValue[i] - xValue);
+            if (distance < minDistance) {
+                minDistance = distance;
+                closestY = series->YValue[i];
+            }
+        }
+
+        // Добавляем значение в подпись
+        RulerLabel->Caption = RulerLabel->Caption + series->Title + ": X=" + FloatToStrF(xValue, ffFixed, 15, 2) + ", Y=" + FloatToStrF(closestY, ffFixed, 15, 2) + "\n";
+    }
+
+
+}
+
+void __fastcall TForm1::FormResize(TObject *Sender) {
+	// Устанавливаем ширину TrackBar равной ширине графика
+
+	RulerLabel->Left = Chart1->Width - RulerLabel->Width - 40; // Отступ справа
+	RulerLabel->Top = 5; // Отступ сверху
+
+}
+
+
+
+void __fastcall TForm1::EditLambdaMinChange(TObject *Sender) {
+    if (isRulerVisible) {
+		UpdateTrackBarRange();
+
+	}
+}
+
+void __fastcall TForm1::EditLambdaMaxChange(TObject *Sender) {
+	if (isRulerVisible) {
+		UpdateTrackBarRange();
+
+	}
+}

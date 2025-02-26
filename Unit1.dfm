@@ -11,6 +11,7 @@ object Form1: TForm1
   Font.Name = 'Segoe UI'
   Font.Style = []
   Menu = MainMenu1
+  OnResize = FormResize
   TextHeight = 15
   object Label32: TLabel
     Left = 236
@@ -25,6 +26,84 @@ object Form1: TForm1
     Width = 23
     Height = 15
     Caption = 'Max'
+  end
+  object Chart1: TChart
+    Left = 391
+    Top = 28
+    Width = 735
+    Height = 749
+    AllowPanning = pmNone
+    Legend.Visible = False
+    Title.Text.Strings = (
+      'TChart')
+    View3D = False
+    Align = alCustom
+    AutoSize = True
+    TabOrder = 4
+    Anchors = [akLeft, akTop, akRight, akBottom]
+    DragKind = dkDock
+    DesignSize = (
+      735
+      749)
+    DefaultCanvas = 'TGDIPlusCanvas'
+    PrintMargins = (
+      15
+      5
+      15
+      5)
+    ColorPaletteIndex = 13
+    object RulerLabel: TLabel
+      Left = 520
+      Top = 8
+      Width = 191
+      Height = 33
+      Anchors = [akTop]
+      Caption = 'RulerLabel'
+      Visible = False
+    end
+    object CheckBox1: TCheckBox
+      Left = 16
+      Top = 8
+      Width = 97
+      Height = 17
+      Caption = 'CheckBox1'
+      TabOrder = 0
+      OnClick = CheckBox1Click
+    end
+    object TrackBarRuler: TTrackBar
+      Left = 48
+      Top = 720
+      Width = 670
+      Height = 28
+      Align = alCustom
+      Anchors = [akLeft, akRight, akBottom]
+      TabOrder = 1
+      OnChange = TrackBarRulerOnChange
+    end
+    object Series1: TFastLineSeries
+      HoverElement = []
+      LinePen.Color = 10708548
+      LinePen.Width = 2
+      XValues.Name = 'X'
+      XValues.Order = loAscending
+      YValues.Name = 'Y'
+      YValues.Order = loNone
+      object TeeFunction1: TCustomTeeFunction
+        Period = 1.000000000000000000
+        NumPoints = 1000
+      end
+    end
+    object RulerLine: TLineSeries
+      HoverElement = [heCurrent]
+      Title = 'RulerLine'
+      Brush.BackColor = clDefault
+      Pointer.InflateMargins = True
+      Pointer.Style = psRectangle
+      XValues.Name = 'X'
+      XValues.Order = loAscending
+      YValues.Name = 'Y'
+      YValues.Order = loNone
+    end
   end
   object StringGrid1: TStringGrid
     Left = 3
@@ -58,6 +137,7 @@ object Form1: TForm1
     Height = 23
     TabOrder = 2
     Text = '400'
+    OnChange = EditLambdaMinChange
   end
   object EditLambdaMax: TEdit
     Left = 336
@@ -66,42 +146,6 @@ object Form1: TForm1
     Height = 23
     TabOrder = 3
     Text = '1000'
-  end
-  object Chart1: TChart
-    Left = 391
-    Top = 29
-    Width = 735
-    Height = 749
-    AllowPanning = pmNone
-    Legend.Visible = False
-    Title.Text.Strings = (
-      'TChart')
-    View3D = False
-    Align = alCustom
-    DragMode = dmAutomatic
-    AutoSize = True
-    TabOrder = 4
-    Anchors = [akLeft, akTop, akRight, akBottom]
-    DefaultCanvas = 'TGDIPlusCanvas'
-    PrintMargins = (
-      15
-      5
-      15
-      5)
-    ColorPaletteIndex = 13
-    object Series1: TFastLineSeries
-      HoverElement = []
-      LinePen.Color = 10708548
-      LinePen.Width = 2
-      XValues.Name = 'X'
-      XValues.Order = loAscending
-      YValues.Name = 'Y'
-      YValues.Order = loNone
-      object TeeFunction1: TCustomTeeFunction
-        Period = 1.000000000000000000
-        NumPoints = 1000
-      end
-    end
   end
   object ButtonCalculate: TButton
     Left = 614

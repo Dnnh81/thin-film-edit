@@ -17,6 +17,7 @@
 #include <VCLTee.TeeProcs.hpp>
 #include <VCLTee.Series.hpp>
 #include <VCLTee.TeeFunci.hpp>
+#include <Vcl.ComCtrls.hpp>
 #include <map>
 #include <vector>
 #include <complex>
@@ -51,6 +52,10 @@ __published:	// IDE-managed Components
 	TLabel *Label23;
 	TButton *ButtonClearGraph;
 	TMenuItem *ImportMLS1;
+	TLineSeries *RulerLine;
+	TLabel *RulerLabel;
+	TCheckBox *CheckBox1;
+	TTrackBar *TrackBarRuler;
 
 
 
@@ -64,7 +69,7 @@ __published:	// IDE-managed Components
 
 	void __fastcall MenuItemChangeThicknessClick(TObject *Sender);
 	void __fastcall StringGrid1MouseUp(TObject *Sender, TMouseButton Button, TShiftState Shift,
-          int X, int Y);
+		  int X, int Y);
 	void __fastcall StringGrid1MouseMove(TObject *Sender, TShiftState Shift, int X,
           int Y);
 	void __fastcall StringGrid1DrawCell(TObject *Sender, System::LongInt ACol, System::LongInt ARow,
@@ -72,9 +77,15 @@ __published:	// IDE-managed Components
 	void __fastcall ImportTFD1Click(TObject *Sender);
 	void __fastcall ButtonClearGraphClick(TObject *Sender);
 	void __fastcall ImportDataFromFile(TObject *Sender);
+	void __fastcall CheckBox1Click(TObject *Sender);
+	void __fastcall TrackBarRulerOnChange(TObject *Sender);
+	void __fastcall FormResize(TObject *Sender);
+	void __fastcall EditLambdaMinChange(TObject *Sender);
+    void __fastcall EditLambdaMaxChange(TObject *Sender);
+
 
 			  private:	// User declarations
-
+				bool isRulerVisible;    // Флаг видимости линейки
 			   // Объявление метода
 public:		// User declarations
 	__fastcall TForm1(TComponent* Owner);
@@ -82,6 +93,8 @@ public:		// User declarations
 	Complex CalculateReflection(double lambda);
 	void LoadSubstrateRefractiveIndex(String substrateName);
 	void LoadMaterialRefractiveIndex(String materialName);
+	 void UpdateRulerPosition(double xValue);
+	 void UpdateTrackBarRange();
 
 
 };
