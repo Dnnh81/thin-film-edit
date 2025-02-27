@@ -10,6 +10,7 @@
 #include <fstream>
 #include <math.h>
 #include <Eigen/Dense>
+
 #pragma hdrstop
 #include "Unit1.h"
 #include "Unit2.h"
@@ -30,13 +31,14 @@ std::vector<TLineSeries*> savedSeries;
 void LoadRefractiveIndices();
 
 __fastcall TForm1::TForm1(TComponent* Owner) : TForm(Owner) {
+
 	ComboBoxCalcType->Items->Add("T");
 	ComboBoxCalcType->Items->Add("R");
 	ComboBoxCalcType->Items->Add("T Backside");
 	ComboBoxCalcType->Items->Add("R Backside");
 	ComboBoxCalcType->ItemIndex = 0; // По умолчанию выбрано пропускание
 	 // Создаем линию линейки
-    RulerLine = new TLineSeries(this);
+	RulerLine = new TLineSeries(this);
     RulerLine->ParentChart = Chart1;
     RulerLine->SeriesColor = clRed;
     RulerLine->LinePen->Width = 2;
@@ -150,107 +152,123 @@ Complex GetRefractiveIndex(const String &material, double lambda) {
 	return Complex(1.0, 0.0);
 }
 
-pair<double, double> RCWAMethod(double lambda, const String &substrate, const vector<String> &materials, const vector<double> &thicknesses) {
-    size_t N = materials.size();
+pair<double, double> RCWAMethod(double lambda, const String &substrate, const vector<String> &materials, const vector<double> &thicknesses, bool considerBackside) {
+	size_t N = materials.size();
 	MatrixXcd S = MatrixXcd::Identity(2, 2);
 
-    for (size_t i = 0; i < N; i++) {
-        Complex ni = GetRefractiveIndex(materials[i], lambda);
-        double d = thicknesses[i];
-        Complex k = 2.0 * M_PI * ni / lambda;
-        Complex phase = exp(Complex(0, 1) * k * d);
+	for (size_t i = 0; i < N; i++) {
+		Complex ni = GetRefractiveIndex(materials[i], lambda);
+		double d = thicknesses[i];
+		Complex k = 2.0 * M_PI * ni / lambda;
+		Complex phase = exp(Complex(0, 1) * k * d);
 
 		MatrixXcd M(2, 2);
-        M << cos(k.real() * d), Complex(0, 1) / ni * sin(k.real() * d),
-             Complex(0, 1) * ni * sin(k.real() * d), cos(k.real() * d);
+		M << cos(k.real() * d), Complex(0, 1) / ni * sin(k.real() * d),
+			 Complex(0, 1) * ni * sin(k.real() * d), cos(k.real() * d);
 
 		S = M * S;
-
 	}
 
-    Complex n0(1.0, 0.0); // Воздух
+	Complex n0(1.0, 0.0); // Воздух
 	Complex ns = GetSubstrateRefractiveIndex(substrate, lambda);
 
 	Complex denom = S(0,0) + S(0,1) * ns + S(1,0) + S(1,1) * ns;
-    Complex r = (S(0,0) + S(0,1) * ns - S(1,0) - S(1,1) * ns) / denom;
-    Complex t = (2.0 * n0) / denom;
+	Complex r = (S(0,0) + S(0,1) * ns - S(1,0) - S(1,1) * ns) / denom;
+	Complex t = (2.0 * n0) / denom;
 
-    // Корректная нормализация пропускания с учетом подложки
-    double T = abs(t) * abs(t) * real(ns) / real(n0);
+	double T = abs(t) * abs(t) * real(ns) / real(n0);
 	double R = abs(r) * abs(r);
-    return make_pair(T, R);
+
+	if (considerBackside) {
+		// Коэффициент отражения от задней поверхности
+		Complex r_back = (n0 - ns) / (n0 + ns);
+		double R_back = abs(r_back) * abs(r_back);
+
+		// Пропускание через вторую грань
+		double T_back = 1.0 - R_back;
+
+		// Учет многократных отражений между гранями
+		double T_total = (T * T_back) / (1.0 - R * R_back);
+		double R_total = R + (T * T * R_back) / (1.0 - R * R_back);
+		// Корректная нормализация пропускания
+		T = T_total;
+        R = R_total;
+	}
+
+	return make_pair(T, R);
 }
 
+Complex __fastcall TForm1::CalculateTransmission(double lambda, bool considerBackside) {
+    vector<String> materials;
+    vector<double> thicknesses;
+    for (int i = 1; i < StringGrid1->RowCount; i++) {
+        materials.push_back(StringGrid1->Cells[1][i]);
+        thicknesses.push_back(StrToFloat(StringGrid1->Cells[2][i]));
+    }
+    auto result = RCWAMethod(lambda, EditSubstrate->Text, materials, thicknesses, considerBackside);
+    return result.first; // Пропускание
+}
 
+Complex __fastcall TForm1::CalculateReflection(double lambda, bool considerBackside) {
+    vector<String> materials;
+    vector<double> thicknesses;
+    for (int i = 1; i < StringGrid1->RowCount; i++) {
+        materials.push_back(StringGrid1->Cells[1][i]);
+        thicknesses.push_back(StrToFloat(StringGrid1->Cells[2][i]));
+    }
+    auto result = RCWAMethod(lambda, EditSubstrate->Text, materials, thicknesses, considerBackside);
+    return result.second; // Отражение
+}
 
 void __fastcall TForm1::ButtonCalculateClick(TObject *Sender) {
-	double lambdaMin = StrToFloat(EditLambdaMin->Text);
-	double lambdaMax = StrToFloat(EditLambdaMax->Text);
-	int points = 1000;
-	double step = (lambdaMax - lambdaMin) / points;
-	Series1->Clear();
+    double lambdaMin = StrToFloat(EditLambdaMin->Text);
+    double lambdaMax = StrToFloat(EditLambdaMax->Text);
+    int points = 1000;
+    double step = (lambdaMax - lambdaMin) / points;
+    Series1->Clear();
 
-	// Открытие файла для записи результатов
-	TStringList *logData = new TStringList();
-	logData->Add("Wavelength (nm)\tTransmission\tReflection");
+    // Открытие файла для записи результатов
+    TStringList *logData = new TStringList();
+    logData->Add("Wavelength (nm)\tTransmission\tReflection");
 
-	for (int i = 0; i <= points; ++i) {
-		double lambda = lambdaMin + i * step;
-		double transmissionValue;
-		double reflectionValue;
-		if (ComboBoxCalcType->ItemIndex == 0) {
-			// Пропускание
-			Complex transmission = CalculateTransmission(lambda);
-			transmissionValue = transmission.real()*100;  // Берем только действительную часть
-			// Добавление данных в график
-			Series1->AddXY(lambda, transmissionValue);
-		} else {
-			// Отражение
-			Complex reflection = CalculateReflection(lambda);
-			reflectionValue = reflection.real()*100;  // Берем только действительную часть
-			Series1->AddXY(lambda, reflectionValue);
-		}
+    for (int i = 0; i <= points; ++i) {
+        double lambda = lambdaMin + i * step;
+        double transmissionValue = 0.0;
+        double reflectionValue = 0.0;
 
+        switch (ComboBoxCalcType->ItemIndex) {
+            case 0: // T (пропускание без учета отражения от второй грани)
+                transmissionValue = CalculateTransmission(lambda, false).real() * 100;
+                break;
+            case 1: // R (отражение без учета отражения от второй грани)
+                reflectionValue = CalculateReflection(lambda, false).real() * 100;
+                break;
+            case 2: // T Backside (пропускание с учетом отражения от второй грани)
+                transmissionValue = CalculateTransmission(lambda, true).real() * 100;
+                break;
+            case 3: // R Backside (отражение с учетом отражения от второй грани)
+                reflectionValue = CalculateReflection(lambda, true).real() * 100;
+                break;
+        }
 
+        // Добавление данных в график
+        if (ComboBoxCalcType->ItemIndex == 0 || ComboBoxCalcType->ItemIndex == 2) {
+            Series1->AddXY(lambda, transmissionValue);
+        } else {
+            Series1->AddXY(lambda, reflectionValue);
+        }
 
-		// Добавление данных в лог
-		logData->Add(FloatToStrF(lambda, ffFixed, 15, 6) + "\t" +
-					 FloatToStrF(transmissionValue, ffFixed, 15, 6) + "\t" +
+        // Добавление данных в лог
+        logData->Add(FloatToStrF(lambda, ffFixed, 15, 6) + "\t" +
+                     FloatToStrF(transmissionValue, ffFixed, 15, 6) + "\t" +
                      FloatToStrF(reflectionValue, ffFixed, 15, 6));
-	}
+    }
 
-    // Сохранение лога в файл
+	// Сохранение лога в файл
     String logFilePath = ExtractFilePath(Application->ExeName) + "log.txt";
-	logData->SaveToFile(logFilePath);
-	delete logData;
+    logData->SaveToFile(logFilePath);
+    delete logData;
 
-	ShowMessage("Расчетные значения сохранены в файл: " + logFilePath);
-}
-
-
-
-
-
-Complex __fastcall TForm1::CalculateTransmission(double lambda) {
-	vector<String> materials;
-	vector<double> thicknesses;
-	for (int i = 1; i < StringGrid1->RowCount; i++) {
-		materials.push_back(StringGrid1->Cells[1][i]);
-		thicknesses.push_back(StrToFloat(StringGrid1->Cells[2][i]));
-	}
-	auto result = RCWAMethod(lambda, EditSubstrate->Text, materials, thicknesses);
-	return result.first; // Пропускание
-}
-
-Complex __fastcall TForm1::CalculateReflection(double lambda) {
-	vector<String> materials;
-	vector<double> thicknesses;
-	for (int i = 1; i < StringGrid1->RowCount; i++) {
-		materials.push_back(StringGrid1->Cells[1][i]);
-		thicknesses.push_back(StrToFloat(StringGrid1->Cells[2][i]));
-	}
-	auto result = RCWAMethod(lambda, EditSubstrate->Text, materials, thicknesses);
-	return result.second; // Отражение
 }
 
 
@@ -1018,16 +1036,26 @@ void __fastcall TForm1::CheckBox1Click(TObject *Sender) {
 }
 
 void __fastcall TForm1::TrackBarRulerOnChange(TObject *Sender) {
+    static bool isUpdating = false;
+
+    if (isUpdating) {
+        return; // Если обновление уже выполняется, выходим
+    }
+
+    isUpdating = true;
+
     // Получаем текущее значение TrackBar
     int position = TrackBarRuler->Position;
 
     // Преобразуем значение TrackBar в координату X на графике
     double minX = StrToFloat(EditLambdaMin->Text);
-	double maxX = StrToFloat(EditLambdaMax->Text);
-	double xValue = minX + (maxX - minX) * ((position - TrackBarRuler->Min) / (double)(TrackBarRuler->Max - TrackBarRuler->Min));
+    double maxX = StrToFloat(EditLambdaMax->Text);
+    double xValue = minX + (maxX - minX) * ((position - TrackBarRuler->Min) / (double)(TrackBarRuler->Max - TrackBarRuler->Min));
 
-	// Обновляем положение линейки
-	UpdateRulerPosition(xValue);
+    // Обновляем положение линейки и подписи
+    UpdateRulerPosition(xValue);
+
+    isUpdating = false;
 }
 
 void TForm1::UpdateRulerPosition(double xValue) {
@@ -1070,6 +1098,23 @@ void TForm1::UpdateRulerPosition(double xValue) {
 
 
 }
+void TForm1::UpdateParameters() {
+	// Проверяем, что значения корректны
+    double lambdaMin = StrToFloatDef(EditLambdaMin->Text, 0.0);
+    double lambdaMax = StrToFloatDef(EditLambdaMax->Text, 0.0);
+
+    if (lambdaMin >= lambdaMax) {
+        ShowMessage("Ошибка: Минимальное значение должно быть меньше максимального.");
+        return;
+    }
+
+    // Обновляем параметры для расчета
+    if (isRulerVisible) {
+        UpdateTrackBarRange();
+        double xValue = StrToFloat(EditLambdaMin->Text);
+        UpdateRulerPosition(xValue);
+    }
+}
 
 void __fastcall TForm1::FormResize(TObject *Sender) {
 	// Устанавливаем ширину TrackBar равной ширине графика
@@ -1084,13 +1129,16 @@ void __fastcall TForm1::FormResize(TObject *Sender) {
 void __fastcall TForm1::EditLambdaMinChange(TObject *Sender) {
     if (isRulerVisible) {
 		UpdateTrackBarRange();
-
+			UpdateParameters();
 	}
 }
 
 void __fastcall TForm1::EditLambdaMaxChange(TObject *Sender) {
 	if (isRulerVisible) {
 		UpdateTrackBarRange();
-
+			UpdateParameters();
 	}
 }
+
+
+

@@ -66,7 +66,7 @@ object Form1: TForm1
       Top = 8
       Width = 97
       Height = 17
-      Caption = 'CheckBox1'
+      Caption = #1051#1080#1085#1077#1081#1082#1072
       TabOrder = 0
       OnClick = CheckBox1Click
     end
@@ -146,6 +146,7 @@ object Form1: TForm1
     Height = 23
     TabOrder = 3
     Text = '1000'
+    OnChange = EditLambdaMaxChange
   end
   object ButtonCalculate: TButton
     Left = 614
@@ -196,7 +197,7 @@ object Form1: TForm1
     object file: TMenuItem
       Caption = 'File'
       object LoadLMR1: TMenuItem
-        Caption = 'Load LMR'
+        Caption = 'Import LMR'
         OnClick = LoadLMR1Click
       end
       object ImportTFD1: TMenuItem

@@ -33,6 +33,7 @@ __published:	// IDE-managed Components
 	TFastLineSeries *waveLongSeries;
 	TCustomTeeFunction *TeeFunction2;
 	TEdit *DiscrEdit;
+	TComboBox *ComboBoxCalcType;
 	void __fastcall ButtonCalculateClick(TObject *Sender);
 	void __fastcall TrackBarWavelengthChange(TObject *Sender);
 	 void __fastcall LoadSubstrateRefractiveIndex(const String &filename);
@@ -49,13 +50,15 @@ private:
 	std::map<int, double> tSlideWavelengths; // Ключ: т-слайд, Значение: длина волны
 	int SelectedRow = -1;
 	int SelectedCol = -1;	// User declarations
+
 public:		// User declarations
 	__fastcall TForm2(TComponent* Owner);
-	void PerformLayeredCalculation(double lambda);
+    void PerformLayeredCalculation(double lambda, int calculationType);
 	void CopyDataFromStringGrid1();
 	double GetClosestRefractiveIndex(double lambda);
 	void UpdateWavelengthInTable(double newLambda);
-
+	double CalculateTransmissionWithBackside(double lambda, const String& substrate, const std::vector<String>& materials, const std::vector<double>& thicknesses);
+	double CalculateReflectionWithBackside(double lambda, const String& substrate, const std::vector<String>& materials, const std::vector<double>& thicknesses);
 
 };
 //---------------------------------------------------------------------------

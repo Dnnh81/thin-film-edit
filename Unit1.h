@@ -24,7 +24,7 @@
 //---------------------------------------------------------------------------
 using namespace std;
 typedef complex<double> Complex;
-pair<double, double> RCWAMethod(double lambda, const String &substrate, const vector<String> &materials, const vector<double> &thicknesses);
+pair<double, double> RCWAMethod(double lambda, const String &substrate,const vector<String> &materials,const vector<double> &thicknesses,bool considerBackside = false);
 
 class TForm1 : public TForm
 {
@@ -82,20 +82,20 @@ __published:	// IDE-managed Components
 	void __fastcall FormResize(TObject *Sender);
 	void __fastcall EditLambdaMinChange(TObject *Sender);
     void __fastcall EditLambdaMaxChange(TObject *Sender);
-
-
+	Complex __fastcall CalculateTransmission(double lambda, bool considerBackside);
+	Complex __fastcall CalculateReflection(double lambda, bool considerBackside);
 			  private:	// User declarations
-				bool isRulerVisible;    // Флаг видимости линейки
+				bool isRulerVisible;
+				char* OldLocale; // Флаг видимости линейки
 			   // Объявление метода
 public:		// User declarations
 	__fastcall TForm1(TComponent* Owner);
-	Complex CalculateTransmission(double lambda);
-	Complex CalculateReflection(double lambda);
+
 	void LoadSubstrateRefractiveIndex(String substrateName);
 	void LoadMaterialRefractiveIndex(String materialName);
 	 void UpdateRulerPosition(double xValue);
 	 void UpdateTrackBarRange();
-
+     void UpdateParameters();
 
 };
 

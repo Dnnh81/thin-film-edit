@@ -42,7 +42,7 @@ object Form2: TForm2
     Left = 0
     Top = 8
     Width = 153
-    Height = 34
+    Height = 17
     Caption = 'ButtonCalculate'
     TabOrder = 0
     OnClick = ButtonCalculateClick
@@ -59,12 +59,12 @@ object Form2: TForm2
     OnChange = TrackBarWavelengthChange
   end
   object ComboBoxTS: TComboBox
-    Left = 159
+    Left = 587
     Top = 8
     Width = 145
     Height = 23
     TabOrder = 2
-    Text = 'ComboBoxTS'
+    Text = #1042#1099#1073#1088#1072#1090#1100' T-slide'
     OnChange = ComboBoxTSChange
   end
   object Chartwave: TChart
@@ -85,7 +85,6 @@ object Form2: TForm2
     ZoomWheel = pmwNormal
     Align = alBottom
     TabOrder = 3
-    ExplicitLeft = -2
     DefaultCanvas = 'TGDIPlusCanvas'
     ColorPaletteIndex = 9
     object Wavechange: TFastLineSeries
@@ -135,5 +134,13 @@ object Form2: TForm2
     Height = 23
     TabOrder = 5
     Text = 'DiscrEdit'
+  end
+  object ComboBoxCalcType: TComboBox
+    Left = 159
+    Top = 8
+    Width = 145
+    Height = 23
+    TabOrder = 6
+    Text = 'ComboBoxCalcType'
   end
 end
