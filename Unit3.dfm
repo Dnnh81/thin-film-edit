@@ -44,7 +44,9 @@ object Form3: TForm3
     Width = 113
     Height = 17
     Caption = #1042#1089#1077' '#1089#1083#1086#1080
+    Checked = True
     TabOrder = 3
+    TabStop = True
   end
   object RadioButtonEven: TRadioButton
     Left = 40

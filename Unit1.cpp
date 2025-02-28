@@ -28,7 +28,16 @@ typedef MatrixXcd MatrixXcd;
 map<String, double> MaterialRefractiveIndex;
 map<String, vector<pair<double, Complex>>> RefractiveIndices;
 std::vector<TLineSeries*> savedSeries;
+struct SavedGraphData {
+    std::vector<double> xValues;
+    std::vector<double> yValues;
+    TColor color;
+    double lambdaMin; // Минимальное значение диапазона
+    double lambdaMax; // Максимальное значение диапазона
+};
+std::vector<SavedGraphData> savedGraphs;
 void LoadRefractiveIndices();
+
 
 __fastcall TForm1::TForm1(TComponent* Owner) : TForm(Owner) {
 
@@ -739,18 +748,24 @@ void __fastcall TForm1::MenuItemChangeThicknessClick(TObject *Sender)
 }
 
 void __fastcall TForm1::SaveGraphClick(TObject *Sender) {
-	if (Chart1->SeriesCount() == 0) return; // Если нет данных — ничего не делаем
+    if (Chart1->SeriesCount() == 0) return; // Если нет данных — ничего не делаем
 
-    TLineSeries *newSeries = new TLineSeries(Chart1);
-	newSeries->Color = (TColor)RGB(Random(255), Random(255), Random(255)); // Разные цвета
+    // Сохраняем данные текущего графика
+    SavedGraphData graphData;
+    for (int i = 0; i < Series1->Count(); i++) {
+        graphData.xValues.push_back(Series1->XValue[i]);
+        graphData.yValues.push_back(Series1->YValue[i]);
+    }
+    graphData.color = (TColor)RGB(Random(255), Random(255), Random(255)); // Разные цвета
 
-	// Копируем данные из текущей серии
-	for (int i = 0; i < Series1->Count(); i++) {
-		newSeries->AddXY(Series1->XValue[i], Series1->YValue[i]);
-	}
+    // Запоминаем текущий диапазон
+    graphData.lambdaMin = StrToFloat(EditLambdaMin->Text);
+    graphData.lambdaMax = StrToFloat(EditLambdaMax->Text);
 
-	Chart1->AddSeries(newSeries);
-	savedSeries.push_back(newSeries);
+    savedGraphs.push_back(graphData);
+
+    // Обновляем отображение графиков
+    UpdateSavedGraphs();
 }
 
 
@@ -898,15 +913,15 @@ void __fastcall TForm1::ImportTFD1Click(TObject *Sender) {
 
 
 void __fastcall TForm1::ButtonClearGraphClick(TObject *Sender) {
-    // Сохраняем RulerLine
-    TLineSeries *rulerLine = RulerLine;
+	// Сохраняем RulerLine
+	TLineSeries *rulerLine = RulerLine;
 
-    // Очищаем все серии на графике, кроме RulerLine
-    for (int i = Chart1->SeriesCount() - 1; i >= 0; i--) {
-        if (Chart1->Series[i] != rulerLine) {
-            Chart1->RemoveSeries(Chart1->Series[i]);
-        }
-    }
+	// Очищаем все серии на графике, кроме RulerLine
+	for (int i = Chart1->SeriesCount() - 1; i >= 0; i--) {
+		if (Chart1->Series[i] != rulerLine) {
+			Chart1->RemoveSeries(Chart1->Series[i]);
+		}
+	}
 
     savedSeries.clear(); // Очищаем сохраненные серии
 
@@ -1029,7 +1044,7 @@ void __fastcall TForm1::CheckBox1Click(TObject *Sender) {
         UpdateTrackBarRange();
 			RulerLabel->Left = Chart1->Width - RulerLabel->Width - 150; // Отступ справа
 		RulerLabel->Top = 5; // Отступ сверху
-        // Устанавливаем начальное положение линейки
+		// Устанавливаем начальное положение линейки
         double xValue = StrToFloat(EditLambdaMin->Text);
 		UpdateRulerPosition(xValue);
 		}
@@ -1098,21 +1113,17 @@ void TForm1::UpdateRulerPosition(double xValue) {
 
 
 }
+
 void TForm1::UpdateParameters() {
 	// Проверяем, что значения корректны
-    double lambdaMin = StrToFloatDef(EditLambdaMin->Text, 0.0);
-    double lambdaMax = StrToFloatDef(EditLambdaMax->Text, 0.0);
+	double lambdaMin = StrToFloatDef(EditLambdaMin->Text, 0.0);
+	double lambdaMax = StrToFloatDef(EditLambdaMax->Text, 0.0);
 
-    if (lambdaMin >= lambdaMax) {
-        ShowMessage("Ошибка: Минимальное значение должно быть меньше максимального.");
-        return;
-    }
-
-    // Обновляем параметры для расчета
+	// Обновляем параметры для расчета
     if (isRulerVisible) {
         UpdateTrackBarRange();
-        double xValue = StrToFloat(EditLambdaMin->Text);
-        UpdateRulerPosition(xValue);
+		double xValue = StrToFloat(EditLambdaMin->Text);
+		UpdateRulerPosition(xValue);
     }
 }
 
@@ -1126,19 +1137,184 @@ void __fastcall TForm1::FormResize(TObject *Sender) {
 
 
 
-void __fastcall TForm1::EditLambdaMinChange(TObject *Sender) {
-    if (isRulerVisible) {
-		UpdateTrackBarRange();
-			UpdateParameters();
-	}
+
+
+
+
+void TForm1::RecalculateSavedGraphs(double lambdaMin, double lambdaMax) {
+    // Сохраняем линейку (RulerLine)
+    TLineSeries* rulerLine = RulerLine;
+
+    // Очищаем все серии, кроме линейки
+    for (int i = Chart1->SeriesCount() - 1; i >= 0; i--) {
+        if (Chart1->Series[i] != rulerLine) {
+            Chart1->RemoveSeries(Chart1->Series[i]);
+        }
+    }
+
+    // Пересчитываем данные для сохраненных графиков
+    for (auto & graph : savedGraphs) {
+        graph.xValues.clear();
+        graph.yValues.clear();
+
+        // Пересчитываем данные для графика в новом диапазоне
+        double step = (lambdaMax - lambdaMin) / 1000; // Шаг для расчета
+        for (double lambda = lambdaMin; lambda <= lambdaMax; lambda += step) {
+            graph.xValues.push_back(lambda);
+
+            // Вычисляем значение графика
+            double value = 0.0;
+            int calculationType = ComboBoxCalcType->ItemIndex;
+
+            switch (calculationType) {
+                case 0: // T (пропускание без учета отражения от второй грани)
+                    value = CalculateTransmission(lambda, false).real() * 100;
+                    break;
+                case 1: // R (отражение без учета отражения от второй грани)
+                    value = CalculateReflection(lambda, false).real() * 100;
+                    break;
+                case 2: // T Backside (пропускание с учетом отражения от второй грани)
+                    value = CalculateTransmission(lambda, true).real() * 100;
+                    break;
+                case 3: // R Backside (отражение с учетом отражения от второй грани)
+                    value = CalculateReflection(lambda, true).real() * 100;
+                    break;
+            }
+
+            graph.yValues.push_back(value);
+        }
+    }
+
+    // Добавляем основной график
+    Series1 = new TFastLineSeries(Chart1);
+    Series1->Title = "График";
+    Series1->Color = clBlue;
+    Chart1->AddSeries(Series1);
+
+    // Добавляем сохраненные графики
+    for (const auto & graph : savedGraphs) {
+        TFastLineSeries* savedSeries = new TFastLineSeries(Chart1);
+        savedSeries->Title = "Сохраненный график";
+        savedSeries->Color = graph.color;
+        Chart1->AddSeries(savedSeries);
+
+        for (size_t i = 0; i < graph.xValues.size(); ++i) {
+            savedSeries->AddXY(graph.xValues[i], graph.yValues[i]);
+        }
+    }
+
+    // Восстанавливаем линейку, если она была удалена
+    if (rulerLine && !Chart1->SeriesList->Contains(rulerLine)) {
+        Chart1->AddSeries(rulerLine);
+    }
+
+    // Перерисовываем график
+	Chart1->Repaint();
 }
 
-void __fastcall TForm1::EditLambdaMaxChange(TObject *Sender) {
-	if (isRulerVisible) {
-		UpdateTrackBarRange();
-			UpdateParameters();
-	}
+void TForm1::UpdateSavedGraphs() {
+    // Сохраняем линейку
+    TLineSeries* rulerLine = RulerLine;
+
+    // Очищаем все серии, кроме линейки
+    for (int i = Chart1->SeriesCount() - 1; i >= 0; i--) {
+        if (Chart1->Series[i] != rulerLine) {
+            Chart1->RemoveSeries(Chart1->Series[i]);
+        }
+    }
+
+    // Получаем текущий диапазон длин волн
+    double lambdaMin = StrToFloatDef(EditLambdaMin->Text, 0.0);
+    double lambdaMax = StrToFloatDef(EditLambdaMax->Text, 0.0);
+
+    // Добавляем основной график
+    Series1 = new TFastLineSeries(Chart1);
+    Series1->Title = "График";
+    Series1->Color = clBlue;
+    Chart1->AddSeries(Series1);
+
+    // Пересчитываем данные для основного графика
+    int points = 1000;
+    double step = (lambdaMax - lambdaMin) / points;
+    for (double lambda = lambdaMin; lambda <= lambdaMax; lambda += step) {
+        double value = 0;
+        int calculationType = ComboBoxCalcType->ItemIndex;
+
+        switch (calculationType) {
+            case 0: // T (пропускание без учета отражения от второй грани)
+                value = CalculateTransmission(lambda, false).real() * 100;
+                break;
+            case 1: // R (отражение без учета отражения от второй грани)
+                value = CalculateReflection(lambda, false).real() * 100;
+                break;
+            case 2: // T Backside (пропускание с учетом отражения от второй грани)
+                value = CalculateTransmission(lambda, true).real() * 100;
+                break;
+            case 3: // R Backside (отражение с учетом отражения от второй грани)
+                value = CalculateReflection(lambda, true).real() * 100;
+                break;
+        }
+
+        Series1->AddXY(lambda, value);
+    }
+
+    // Добавляем сохраненные графики
+    for (const auto & graph : savedGraphs) {
+        TFastLineSeries* savedSeries = new TFastLineSeries(Chart1);
+        savedSeries->Title = "Сохраненный график";
+        savedSeries->Color = graph.color;
+        Chart1->AddSeries(savedSeries);
+
+        // Добавляем точки только в пределах текущего диапазона
+        for (size_t i = 0; i < graph.xValues.size(); ++i) {
+            if (graph.xValues[i] >= lambdaMin && graph.xValues[i] <= lambdaMax) {
+                savedSeries->AddXY(graph.xValues[i], graph.yValues[i]);
+            }
+        }
+    }
+
+    // Восстанавливаем линейку, если она была удалена
+    if (rulerLine && !Chart1->SeriesList->Contains(rulerLine)) {
+        Chart1->AddSeries(rulerLine);
+    }
+
+    // Обновляем диапазон осей
+    Chart1->BottomAxis->Minimum = lambdaMin;
+    Chart1->BottomAxis->Maximum = lambdaMax;
+
+    // Перерисовываем график
+    Chart1->Repaint();
 }
 
+void __fastcall TForm1::EditLambdaKeyPress(TObject *Sender, System::WideChar &Key) {
+    // Проверяем, была ли нажата клавиша Enter (код 13)
+    if (Key == 13) { // 13 — это ASCII-код клавиши Enter
+        // Отменяем стандартное поведение (звуковой сигнал)
+        Key = 0;
+
+        // Получаем значения из полей ввода
+        double lambdaMin = StrToFloatDef(EditLambdaMin->Text, 0.0);
+        double lambdaMax = StrToFloatDef(EditLambdaMax->Text, 0.0);
+
+        // Проверка корректности значений
+        if (lambdaMin >= lambdaMax) {
+            ShowMessage("Минимальное значение должно быть меньше максимального!");
+            return; // Прерываем выполнение, если значения некорректны
+        }
+
+        // Обновляем диапазон оси
+        Chart1->BottomAxis->Minimum = lambdaMin;
+        Chart1->BottomAxis->Maximum = lambdaMax;
+
+        // Обновляем отображение сохраненных графиков и основного графика
+        UpdateSavedGraphs();
+
+        // Обновляем TrackBar и линейку, если они активны
+        if (isRulerVisible) {
+            UpdateTrackBarRange();
+            UpdateParameters();
+        }
+    }
+}
 
 

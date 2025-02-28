@@ -69,10 +69,10 @@ object Form2: TForm2
   end
   object Chartwave: TChart
     AlignWithMargins = True
-    Left = 3
-    Top = 82
-    Width = 1172
-    Height = 649
+    Left = 337
+    Top = 96
+    Width = 858
+    Height = 641
     Legend.Visible = False
     Title.Text.Strings = (
       'TChart')
@@ -83,8 +83,11 @@ object Form2: TForm2
     View3D = False
     Zoom.History = True
     ZoomWheel = pmwNormal
-    Align = alBottom
+    Align = alCustom
     TabOrder = 3
+    Anchors = [akLeft, akTop, akRight, akBottom]
+    ExplicitLeft = 334
+    ExplicitTop = 93
     DefaultCanvas = 'TGDIPlusCanvas'
     ColorPaletteIndex = 9
     object Wavechange: TFastLineSeries
@@ -119,13 +122,16 @@ object Form2: TForm2
   end
   object StringGridwave: TStringGrid
     AlignWithMargins = True
-    Left = 869
-    Top = 3
-    Width = 306
-    Height = 73
-    Align = alRight
+    Left = 6
+    Top = 96
+    Width = 325
+    Height = 636
+    Align = alCustom
+    Anchors = [akLeft, akTop, akBottom]
     Options = [goFixedVertLine, goFixedHorzLine, goVertLine, goHorzLine, goRangeSelect, goEditing, goFixedRowDefAlign]
     TabOrder = 4
+    ExplicitLeft = 0
+    ExplicitTop = 90
   end
   object DiscrEdit: TEdit
     Left = 738

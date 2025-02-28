@@ -36,9 +36,12 @@ object Form1: TForm1
     Legend.Visible = False
     Title.Text.Strings = (
       'TChart')
+    LeftAxis.Automatic = False
+    LeftAxis.AutomaticMaximum = False
+    LeftAxis.AutomaticMinimum = False
+    LeftAxis.Maximum = 100.000000000000000000
     View3D = False
     Align = alCustom
-    AutoSize = True
     TabOrder = 4
     Anchors = [akLeft, akTop, akRight, akBottom]
     DragKind = dkDock
@@ -137,7 +140,7 @@ object Form1: TForm1
     Height = 23
     TabOrder = 2
     Text = '400'
-    OnChange = EditLambdaMinChange
+    OnKeyPress = EditLambdaKeyPress
   end
   object EditLambdaMax: TEdit
     Left = 336
@@ -146,7 +149,7 @@ object Form1: TForm1
     Height = 23
     TabOrder = 3
     Text = '1000'
-    OnChange = EditLambdaMaxChange
+    OnKeyPress = EditLambdaKeyPress
   end
   object ButtonCalculate: TButton
     Left = 614

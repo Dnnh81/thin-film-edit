@@ -80,23 +80,24 @@ __published:	// IDE-managed Components
 	void __fastcall CheckBox1Click(TObject *Sender);
 	void __fastcall TrackBarRulerOnChange(TObject *Sender);
 	void __fastcall FormResize(TObject *Sender);
-	void __fastcall EditLambdaMinChange(TObject *Sender);
-    void __fastcall EditLambdaMaxChange(TObject *Sender);
 	Complex __fastcall CalculateTransmission(double lambda, bool considerBackside);
 	Complex __fastcall CalculateReflection(double lambda, bool considerBackside);
+
+	void __fastcall EditLambdaKeyPress(TObject *Sender, System::WideChar &Key);
 			  private:	// User declarations
 				bool isRulerVisible;
 				char* OldLocale; // Флаг видимости линейки
 			   // Объявление метода
 public:		// User declarations
 	__fastcall TForm1(TComponent* Owner);
-
+	void RecalculateSavedGraphs(double lambdaMin, double lambdaMax);
 	void LoadSubstrateRefractiveIndex(String substrateName);
 	void LoadMaterialRefractiveIndex(String materialName);
 	 void UpdateRulerPosition(double xValue);
 	 void UpdateTrackBarRange();
-     void UpdateParameters();
-
+	 void UpdateParameters();
+	 void UpdateSavedGraphs();
+	 double CalculateGraphValue(double lambda);
 };
 
 

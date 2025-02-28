@@ -572,5 +572,24 @@ void TForm2::UpdateWavelengthInTable(double newLambda) {
 }
 
 
+void __fastcall TForm2::ChangeWavelengthInSelectedRows(double newLambda) {
+    // Получаем выделенные строки
+    TGridRect selection = StringGridwave->Selection;
+    int startRow = selection.Top;
+    int endRow = selection.Bottom;
 
+    // Применяем новую длину волны к выделенным строкам
+    for (int i = startRow; i <= endRow; i++) {
+        StringGridwave->Cells[3][i] = FloatToStr(newLambda); // 3-й столбец — длина волны
+    }
+
+    // Синхронизация с StringGrid1
+    for (int i = startRow; i <= endRow; i++) {
+        for (int j = 1; j < Form1->StringGrid1->RowCount; j++) {
+            if (Form1->StringGrid1->Cells[4][j] == StringGridwave->Cells[4][i]) {
+                Form1->StringGrid1->Cells[3][j] = FloatToStr(newLambda);
+            }
+        }
+    }
+}
 
