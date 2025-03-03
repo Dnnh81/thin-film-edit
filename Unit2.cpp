@@ -20,8 +20,9 @@
 
 TForm2 *Form2;
 // Глобальные переменные для синхронизации
-
-
+bool useWavelengthFromTable = false;
+int DragStartRowWave = -1;  // Начальная строка для перетаскивания длины волны
+int DragEndRowWave = -1;    // Конечная строка для перетаскивания длины волны
 // Глобальные переменные для синхронизации
 std::mutex g_mutex;
 std::vector<std::pair<double, double>> g_results; // Для хранения данных слоев
@@ -46,7 +47,9 @@ __fastcall TForm2::TForm2(TComponent* Owner)
 	ComboBoxTS->ItemIndex = 0;
 
 	DiscrEdit->Text = "0.4";
-	// Новый столбец
+
+        // Подключаем обработчик для синхронизации
+
 
 }
 
@@ -243,32 +246,41 @@ void CalculateLayer(double lambda, const String& substrate, const std::vector<St
 
 
 
-void TForm2::PerformLayeredCalculation(double lambda, int calculationType) {
+void TForm2::PerformLayeredCalculation(int calculationType) {
     TChart* Chart = Chartwave;
     Chart->RemoveAllSeries();
 
     std::vector<String> materials;
     std::vector<double> thicknesses;
+    std::vector<double> wavelengths; // Длины волн из таблицы
 
     int rowCount = StringGridwave->RowCount;
     for (int i = 1; i < rowCount; i++) {
         String mat = StringGridwave->Cells[1][i].Trim();
         String thick = StringGridwave->Cells[2][i].Trim();
-        String tSlideValue = StringGridwave->Cells[4][i].Trim();
 
         if (!mat.IsEmpty() && !thick.IsEmpty()) {
             materials.push_back(mat);
             try {
                 thicknesses.push_back(StrToFloat(thick));
+
+                // Если используем длины волн из таблицы, берем их
+                if (useWavelengthFromTable) {
+                    String lambdaStr = StringGridwave->Cells[3][i].Trim();
+                    if (!lambdaStr.IsEmpty()) {
+                        wavelengths.push_back(StrToFloat(lambdaStr));
+                    } else {
+                        ShowMessage("Ошибка: Длина волны не указана в строке " + IntToStr(i));
+                        return;
+                    }
+                } else {
+                    // Иначе используем длину волны из TrackBar
+                    wavelengths.push_back(TrackBarWavelength->Position);
+                }
             } catch (...) {
-                ShowMessage("Ошибка преобразования толщины слоя: " + thick);
+                ShowMessage("Ошибка преобразования данных в строке " + IntToStr(i));
                 return;
             }
-        }
-
-        int tSlide = StrToIntDef(tSlideValue, -1);
-        if (tSlide != -1 && tSlideWavelengths.find(tSlide) != tSlideWavelengths.end()) {
-            lambda = tSlideWavelengths[tSlide];
         }
     }
 
@@ -286,6 +298,7 @@ void TForm2::PerformLayeredCalculation(double lambda, int calculationType) {
     // Запускаем расчеты асинхронно с использованием std::async
     std::vector<std::future<void>> futures;
     for (size_t i = 0; i < materials.size(); ++i) {
+        double lambda = wavelengths[i]; // Используем длину волны из таблицы или TrackBar
         futures.push_back(std::async(std::launch::async, CalculateLayer, lambda, substrate, materials, thicknesses, i, discrValue, calculationType));
     }
 
@@ -376,7 +389,7 @@ void __fastcall TForm2::UpdateTrackBarFromGrid() {
 	if (found) {
 		TrackBarWavelength->Min = 400;
 		TrackBarWavelength->Max = 1200;
-		TrackBarWavelength->Position = firstLambda; // Устанавливаем значение на первое из таблицы
+
 		LabelWavelength->Caption = "Длина волны: " + IntToStr(TrackBarWavelength->Position) + " нм";
 	}
 }
@@ -386,62 +399,60 @@ void __fastcall TForm2::UpdateTrackBarFromGrid() {
 
 
 void __fastcall TForm2::ButtonCalculateClick(TObject *Sender) {
-	if (Form1->EditSubstrate->Text.Trim().IsEmpty()) {
-		ShowMessage("Ошибка: Подложка не выбрана.");
-		return;
-	}
-    int calculationType = ComboBoxCalcType->ItemIndex; // Получаем выбранный тип расчета
-    double lambda = TrackBarWavelength->Position;
-	PerformLayeredCalculation(lambda, calculationType);
-}
-
-
-
-void __fastcall TForm2::TrackBarWavelengthChange(TObject *Sender) {
     if (Form1->EditSubstrate->Text.Trim().IsEmpty()) {
         ShowMessage("Ошибка: Подложка не выбрана.");
         return;
     }
 
+    // Включаем режим использования длин волн из таблицы
+    useWavelengthFromTable = true;
+
     int calculationType = ComboBoxCalcType->ItemIndex; // Получаем выбранный тип расчета
-    double lambda = TrackBarWavelength->Position;
-    LabelWavelength->Caption = "Длина волны: " + AnsiString(lambda) + " нм";
-    String selectedTSlice = ComboBoxTS->Text;
+	PerformLayeredCalculation(calculationType); // Используем длины волн из таблицы
 
-    if (selectedTSlice == "all") {
-        for (int i = 1; i < StringGridwave->RowCount; i++) {
-            int tSlide = StrToIntDef(StringGridwave->Cells[4][i], -1);
-            if (tSlide != -1) {
-                tSlideWavelengths[tSlide] = lambda;
-                StringGridwave->Cells[3][i] = FloatToStr(lambda);
 
-                // Обновление Form1
-                for (int j = 1; j < Form1->StringGrid1->RowCount; j++) {
-                    if (Form1->StringGrid1->Cells[4][j] == StringGridwave->Cells[4][i]) {
-                        Form1->StringGrid1->Cells[3][j] = FloatToStr(lambda);
-                    }
-                }
-            }
-        }
-    } else {
-        int tSlide = StrToIntDef(selectedTSlice, -1);
-        if (tSlide != -1) {
-            tSlideWavelengths[tSlide] = lambda;
-            for (int i = 1; i < StringGridwave->RowCount; i++) {
-                if (StringGridwave->Cells[4][i] == selectedTSlice) {
-                    StringGridwave->Cells[3][i] = FloatToStr(lambda);
-                }
-            }
-            // Обновление Form1
-            for (int j = 1; j < Form1->StringGrid1->RowCount; j++) {
-                if (Form1->StringGrid1->Cells[4][j] == selectedTSlice) {
-                    Form1->StringGrid1->Cells[3][j] = FloatToStr(lambda);
-                }
-            }
+    // Возвращаем режим в исходное состояние
+    useWavelengthFromTable = false;
+}
+
+
+
+void __fastcall TForm2::TrackBarWavelengthChange(TObject *Sender)
+{
+    if (Form1->EditSubstrate->Text.Trim().IsEmpty()) {
+        ShowMessage("Ошибка: Подложка не выбрана.");
+        return;
+    }
+
+    // Получаем новую длину волны из TrackBar
+    double newLambda = TrackBarWavelength->Position;
+    LabelWavelength->Caption = "Длина волны: " + AnsiString(newLambda) + " нм";
+
+    // Обновляем длину волны только в выделенных строках StringGridwave
+    for (int i = 1; i < StringGridwave->RowCount; i++) {
+        if (StringGridwave->Rows[i]->Objects[3] != nullptr) { // Проверяем, выделена ли строка
+            StringGridwave->Cells[3][i] = FloatToStr(newLambda); // Обновляем длину волны
         }
     }
 
-	PerformLayeredCalculation(lambda, calculationType);
+
+	// Синхронизация с StringGrid1 по номеру строки
+	for (int i = 1; i < StringGridwave->RowCount; i++) {
+		if (StringGridwave->Rows[i]->Objects[3] != nullptr) { // Проверяем, выделена ли строка
+			int rowIndex = StrToIntDef(StringGridwave->Cells[0][i], -1); // Получаем номер строки
+
+			if (rowIndex > 0 && rowIndex < Form1->StringGrid1->RowCount) { // Проверяем, что индекс в пределах допустимого
+				Form1->StringGrid1->Cells[3][rowIndex] = StringGridwave->Cells[3][i]; // Копируем длину волны в нужную строку
+			}
+		}
+	}
+
+
+    // Отключаем режим использования длин волн из таблицы
+	useWavelengthFromTable = true;
+
+    int calculationType = ComboBoxCalcType->ItemIndex; // Получаем выбранный тип расчета
+    PerformLayeredCalculation(calculationType); // Используем длину волны из TrackBar
 }
 
 
@@ -525,71 +536,174 @@ void __fastcall TForm2::UpdateComboBox() {
 	ComboBoxTS->ItemIndex = 0; // Выбираем "all" по умолчанию
 }
 
-void __fastcall TForm2::ComboBoxTSChange(TObject *Sender) {
+void __fastcall TForm2::ComboBoxTSChange(TObject *Sender)
+{
     LoadDataToGridwave(); // Обновляем таблицу
     StringGridwave->Repaint();
+
     int calculationType = ComboBoxCalcType->ItemIndex;
-    double lambda = TrackBarWavelength->Position;
 
     if (ComboBoxTS->Text == "all") {
-        // Загружаем все длины волн из Form1 в StringGridwave
+        // Выделяем все строки
         for (int i = 1; i < StringGridwave->RowCount; i++) {
-            for (int j = 1; j < Form1->StringGrid1->RowCount; j++) {
-                if (StringGridwave->Cells[4][i] == Form1->StringGrid1->Cells[4][j]) {
-                    StringGridwave->Cells[3][i] = Form1->StringGrid1->Cells[3][j];
-                }
+            StringGridwave->Rows[i]->Objects[3] = (TObject*)1; // Выделение
+        }
+    } else {
+        // Выделяем строки с выбранным т-слайдом
+        for (int i = 1; i < StringGridwave->RowCount; i++) {
+            if (StringGridwave->Cells[4][i] == ComboBoxTS->Text) {
+                StringGridwave->Rows[i]->Objects[3] = (TObject*)1; // Выделение
+            } else {
+                StringGridwave->Rows[i]->Objects[3] = nullptr; // Снимаем выделение
             }
         }
     }
 
-	PerformLayeredCalculation(lambda, calculationType);
+    PerformLayeredCalculation(calculationType);
 }
 
 
 
 
 void TForm2::UpdateWavelengthInTable(double newLambda) {
-    String selectedTSlice = ComboBoxTS->Text;
+	String selectedTSlice = ComboBoxTS->Text;
 
+	for (int i = 1; i < StringGridwave->RowCount; i++) {
+		String tSlideValue = StringGridwave->Cells[4][i];
+
+		if (selectedTSlice != "all" && tSlideValue == selectedTSlice) {
+			int tSlide = StrToIntDef(tSlideValue, -1);
+			if (tSlide != -1) {
+				tSlideWavelengths[tSlide] = newLambda;
+				StringGridwave->Cells[3][i] = FloatToStr(newLambda);
+
+				// === СИНХРОНИЗАЦИЯ С FORM1 ===
+				for (int j = 1; j < Form1->StringGrid1->RowCount; j++) {
+					if (Form1->StringGrid1->Cells[4][j] == tSlideValue) {
+						Form1->StringGrid1->Cells[3][j] = FloatToStr(newLambda);
+					}
+				}
+			}
+		}
+	}
+}
+
+
+
+void __fastcall TForm2::StringGridwaveMouseMove(TObject *Sender, TShiftState Shift, int X, int Y)
+{
+    if (DragStartRowWave == -1) return;  // Если не начали перетаскивание — выходим
+
+    int Col, Row;
+    StringGridwave->MouseToCell(X, Y, Col, Row);
+
+    if (Col == 3 && Row > 0 && Row != DragEndRowWave) {
+        DragEndRowWave = Row;
+
+        // Перерисовываем выделение
+        for (int i = 1; i < StringGridwave->RowCount; i++) {
+            if (i >= std::min(DragStartRowWave, DragEndRowWave) && i <= std::max(DragStartRowWave, DragEndRowWave)) {
+                StringGridwave->Rows[i]->Objects[3] = (TObject*)1; // Выделение
+            } else {
+                StringGridwave->Rows[i]->Objects[3] = nullptr; // Снимаем выделение
+            }
+        }
+        StringGridwave->Invalidate(); // Обновляем отображение
+    }
+}
+
+void __fastcall TForm2::StringGridwaveMouseDown(TObject *Sender, TMouseButton Button, TShiftState Shift, int X, int Y)
+{
+    int Col, Row;
+    StringGridwave->MouseToCell(X, Y, Col, Row);
+
+    if (Button == mbLeft && Col == 3 && Row > 0) { // Если клик в столбце длины волны
+        DragStartRowWave = Row;  // Запоминаем начальную строку
+        DragEndRowWave = Row;
+        StringGridwave->Tag = Row;
+
+        // Выделяем строку
+        StringGridwave->Rows[Row]->Objects[3] = (TObject*)1;
+        StringGridwave->Invalidate(); // Обновляем отображение
+    }
+}
+
+void __fastcall TForm2::StringGridwaveMouseUp(TObject *Sender, TMouseButton Button, TShiftState Shift, int X, int Y)
+{
+    if (DragStartRowWave == -1 || DragEndRowWave == -1) return;
+
+    // Оставляем выделение только для выбранных строк
     for (int i = 1; i < StringGridwave->RowCount; i++) {
-        String tSlideValue = StringGridwave->Cells[4][i];
+        if (i >= std::min(DragStartRowWave, DragEndRowWave) && i <= std::max(DragStartRowWave, DragEndRowWave)) {
+            StringGridwave->Rows[i]->Objects[3] = (TObject*)1; // Выделение
+        } else {
+            StringGridwave->Rows[i]->Objects[3] = nullptr; // Снимаем выделение
+        }
+    }
 
-        if (selectedTSlice != "all" && tSlideValue == selectedTSlice) {
-            int tSlide = StrToIntDef(tSlideValue, -1);
-            if (tSlide != -1) {
-                tSlideWavelengths[tSlide] = newLambda;
-                StringGridwave->Cells[3][i] = FloatToStr(newLambda);
+    StringGridwave->Invalidate(); // Обновляем отображение
+    DragStartRowWave = -1;
+    DragEndRowWave = -1;
+}
 
-                // === СИНХРОНИЗАЦИЯ С FORM1 ===
-                for (int j = 1; j < Form1->StringGrid1->RowCount; j++) {
-                    if (Form1->StringGrid1->Cells[4][j] == tSlideValue) {
-                        Form1->StringGrid1->Cells[3][j] = FloatToStr(newLambda);
-                    }
+
+
+void __fastcall TForm2::StringGridwaveSetEditText(TObject *Sender, int ACol, int ARow, const UnicodeString Value)
+{
+    // Если изменяется столбец с длиной волны (3-й столбец)
+    if (ACol == 3 && ARow >= 1) { // Проверяем, что это не заголовок
+        try {
+            // Преобразуем новое значение в число
+            double wavelength = StrToFloat(Value.Trim());
+
+            // Получаем значение t-слайда из текущей строки
+            String tSlideValue = StringGridwave->Cells[4][ARow];
+
+            // Обновляем соответствующую строку в StringGrid1
+            for (int i = 1; i < Form1->StringGrid1->RowCount; i++) {
+                if (Form1->StringGrid1->Cells[4][i] == tSlideValue) {
+                    Form1->StringGrid1->Cells[3][i] = FloatToStr(wavelength); // Синхронизируем длину волны
                 }
             }
-        }
-    }
-}
 
-
-void __fastcall TForm2::ChangeWavelengthInSelectedRows(double newLambda) {
-    // Получаем выделенные строки
-    TGridRect selection = StringGridwave->Selection;
-    int startRow = selection.Top;
-    int endRow = selection.Bottom;
-
-    // Применяем новую длину волны к выделенным строкам
-    for (int i = startRow; i <= endRow; i++) {
-        StringGridwave->Cells[3][i] = FloatToStr(newLambda); // 3-й столбец — длина волны
-    }
-
-    // Синхронизация с StringGrid1
-    for (int i = startRow; i <= endRow; i++) {
-        for (int j = 1; j < Form1->StringGrid1->RowCount; j++) {
-            if (Form1->StringGrid1->Cells[4][j] == StringGridwave->Cells[4][i]) {
-                Form1->StringGrid1->Cells[3][j] = FloatToStr(newLambda);
+            // Если используется режим "использовать длины волн из таблицы", пересчитываем данные
+            if (useWavelengthFromTable) {
+                PerformLayeredCalculation(ComboBoxCalcType->ItemIndex);
             }
+        } catch (...) {
+            // Если произошла ошибка преобразования, отменяем изменение
+            StringGridwave->Cells[ACol][ARow] = StringGridwave->Cells[ACol][ARow]; // Откатываем изменения
         }
     }
 }
+//---------------------------------------------------------------------------
+void __fastcall TForm2::StringGridwaveDrawCell(TObject *Sender, System::LongInt ACol,
+          System::LongInt ARow, TRect &Rect, TGridDrawState State)
+{
+    TStringGrid *Grid = static_cast<TStringGrid*>(Sender);
+
+    // Устанавливаем базовый цвет фона
+    Grid->Canvas->Brush->Color = clWhite;
+
+    // Проверяем, если это заголовки (фиксированные ячейки)
+    if (State.Contains(gdFixed)) {
+        Grid->Canvas->Brush->Color = clBtnFace;  // Серый фон для заголовков
+        Grid->Canvas->FillRect(Rect);
+        Grid->Canvas->TextOut(Rect.Left + 2, Rect.Top + 2, Grid->Cells[ACol][ARow]);
+        return; // Выходим, чтобы не перерисовывать данные
+    }
+
+    // Если это столбец с длиной волны (столбец 3) и строка выделена
+    if (ACol == 3 && Grid->Rows[ARow]->Objects[3] != nullptr) {
+        Grid->Canvas->Brush->Color = clYellow; // Желтый фон для выделенных ячеек
+    }
+
+    // Заливка фона ячейки
+    Grid->Canvas->FillRect(Rect);
+
+    // Рисуем текст
+    Grid->Canvas->TextOut(Rect.Left + 2, Rect.Top + 2, Grid->Cells[ACol][ARow]);
+}
+
+//---------------------------------------------------------------------------
 

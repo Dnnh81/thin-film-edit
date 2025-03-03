@@ -44,6 +44,19 @@ __published:	// IDE-managed Components
 	 void __fastcall LoadDataToGridwave();
 	 void __fastcall UpdateTrackBarFromGrid();
 
+	void __fastcall StringGridwaveMouseMove(TObject *Sender, TShiftState Shift, int X,
+		  int Y);
+	void __fastcall StringGridwaveMouseUp(TObject *Sender, TMouseButton Button, TShiftState Shift,
+		  int X, int Y);
+	void __fastcall StringGridwaveMouseDown(TObject *Sender, TMouseButton Button, TShiftState Shift,
+		  int X, int Y);
+
+
+	void __fastcall StringGridwaveSetEditText(TObject *Sender, System::LongInt ACol,
+          System::LongInt ARow, const UnicodeString Value);
+	void __fastcall StringGridwaveDrawCell(TObject *Sender, System::LongInt ACol, System::LongInt ARow,
+          TRect &Rect, TGridDrawState State);
+
 
 private:
 	std::vector<std::pair<double, double>> substrateRefractiveIndex; // Данные (длина волны, n)
@@ -53,13 +66,13 @@ private:
 
 public:		// User declarations
 	__fastcall TForm2(TComponent* Owner);
-    void PerformLayeredCalculation(double lambda, int calculationType);
+	void PerformLayeredCalculation(int calculationType);
 	void CopyDataFromStringGrid1();
 	double GetClosestRefractiveIndex(double lambda);
 	void UpdateWavelengthInTable(double newLambda);
 	double CalculateTransmissionWithBackside(double lambda, const String& substrate, const std::vector<String>& materials, const std::vector<double>& thicknesses);
 	double CalculateReflectionWithBackside(double lambda, const String& substrate, const std::vector<String>& materials, const std::vector<double>& thicknesses);
-
+	void SwitchWavelength(int tSlide, int index);
 };
 //---------------------------------------------------------------------------
 extern TForm1 *Form1;

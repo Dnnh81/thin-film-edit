@@ -69,8 +69,8 @@ object Form2: TForm2
   end
   object Chartwave: TChart
     AlignWithMargins = True
-    Left = 337
-    Top = 96
+    Left = 349
+    Top = 108
     Width = 858
     Height = 641
     Legend.Visible = False
@@ -122,16 +122,21 @@ object Form2: TForm2
   end
   object StringGridwave: TStringGrid
     AlignWithMargins = True
-    Left = 6
-    Top = 96
+    Left = 17
+    Top = 108
     Width = 325
     Height = 636
     Align = alCustom
     Anchors = [akLeft, akTop, akBottom]
     Options = [goFixedVertLine, goFixedHorzLine, goVertLine, goHorzLine, goRangeSelect, goEditing, goFixedRowDefAlign]
     TabOrder = 4
-    ExplicitLeft = 0
-    ExplicitTop = 90
+    OnDrawCell = StringGridwaveDrawCell
+    OnMouseDown = StringGridwaveMouseDown
+    OnMouseMove = StringGridwaveMouseMove
+    OnMouseUp = StringGridwaveMouseUp
+    OnSetEditText = StringGridwaveSetEditText
+    ExplicitLeft = 8
+    ExplicitTop = 99
   end
   object DiscrEdit: TEdit
     Left = 738
