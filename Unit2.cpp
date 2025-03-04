@@ -45,7 +45,7 @@ __fastcall TForm2::TForm2(TComponent* Owner)
 	TrackBarWavelength->Frequency = 1;  // Шаг отображения
 	CopyDataFromStringGrid1();
 	ComboBoxTS->ItemIndex = 0;
-
+	EditWavelength->Text = IntToStr(TrackBarWavelength->Position);
 	DiscrEdit->Text = "0.4";
 
         // Подключаем обработчик для синхронизации
@@ -164,8 +164,17 @@ void CalculateLayer(double lambda, const String& substrate, const std::vector<St
     bool directionInitialized = false;
 
     std::vector<double> tempThicknesses = activeThicknesses;
+    double maxT = 150.0; // Значение по умолчанию
 
-    for (double t = 0.1; t <= 150.0; t += discrValue) {
+		// Определяем максимальное значение t в зависимости от длины волны
+		if (lambda < 550.0) {
+			maxT = 110.0; // Для длины волны до 550
+		} else if (lambda >= 550.0 && lambda < 800.0) {
+			maxT = 150.0; // Для длины волны от 550 до 800
+		} else if (lambda >= 800.0) {
+			maxT = 210.0; // Для длины волны от 800 до 1200
+		}
+	for (double t = 0.1; t <= maxT; t += discrValue) {
         tempThicknesses.back() = thicknesses[layerIndex] + t;
         auto result = RCWAMethod(lambda, substrate, activeMaterials, tempThicknesses);
 
@@ -390,7 +399,7 @@ void __fastcall TForm2::UpdateTrackBarFromGrid() {
 		TrackBarWavelength->Min = 400;
 		TrackBarWavelength->Max = 1200;
 
-		LabelWavelength->Caption = "Длина волны: " + IntToStr(TrackBarWavelength->Position) + " нм";
+
 	}
 }
 
@@ -424,9 +433,11 @@ void __fastcall TForm2::TrackBarWavelengthChange(TObject *Sender)
         return;
     }
 
-    // Получаем новую длину волны из TrackBar
-    double newLambda = TrackBarWavelength->Position;
-    LabelWavelength->Caption = "Длина волны: " + AnsiString(newLambda) + " нм";
+	// Получаем новую длину волны из TrackBar
+	double newLambda = TrackBarWavelength->Position;
+
+	// Обновляем текст в EditWavelength
+	EditWavelength->Text = newLambda;
 
     // Обновляем длину волны только в выделенных строках StringGridwave
     for (int i = 1; i < StringGridwave->RowCount; i++) {
@@ -454,7 +465,6 @@ void __fastcall TForm2::TrackBarWavelengthChange(TObject *Sender)
     int calculationType = ComboBoxCalcType->ItemIndex; // Получаем выбранный тип расчета
     PerformLayeredCalculation(calculationType); // Используем длину волны из TrackBar
 }
-
 
 
 
@@ -523,7 +533,7 @@ void __fastcall TForm2::LoadDataToGridwave() {
 
 void __fastcall TForm2::UpdateComboBox() {
 	ComboBoxTS->Items->Clear();
-	ComboBoxTS->Items->Add("all");
+
 
 	std::set<int> tSlides;
 	for (int i = 1; i < StringGridwave->RowCount; i++) {
@@ -533,7 +543,7 @@ void __fastcall TForm2::UpdateComboBox() {
 		ComboBoxTS->Items->Add(IntToStr(t));
     }
 
-	ComboBoxTS->ItemIndex = 0; // Выбираем "all" по умолчанию
+	ComboBoxTS->ItemIndex = 0; // Выбираем "1" по умолчанию
 }
 
 void __fastcall TForm2::ComboBoxTSChange(TObject *Sender)
@@ -543,13 +553,7 @@ void __fastcall TForm2::ComboBoxTSChange(TObject *Sender)
 
     int calculationType = ComboBoxCalcType->ItemIndex;
 
-    if (ComboBoxTS->Text == "all") {
-        // Выделяем все строки
-        for (int i = 1; i < StringGridwave->RowCount; i++) {
-            StringGridwave->Rows[i]->Objects[3] = (TObject*)1; // Выделение
-        }
-    } else {
-        // Выделяем строки с выбранным т-слайдом
+
         for (int i = 1; i < StringGridwave->RowCount; i++) {
             if (StringGridwave->Cells[4][i] == ComboBoxTS->Text) {
                 StringGridwave->Rows[i]->Objects[3] = (TObject*)1; // Выделение
@@ -557,7 +561,7 @@ void __fastcall TForm2::ComboBoxTSChange(TObject *Sender)
                 StringGridwave->Rows[i]->Objects[3] = nullptr; // Снимаем выделение
             }
         }
-    }
+
 
     PerformLayeredCalculation(calculationType);
 }
@@ -706,4 +710,40 @@ void __fastcall TForm2::StringGridwaveDrawCell(TObject *Sender, System::LongInt 
 }
 
 //---------------------------------------------------------------------------
+
+void __fastcall TForm2::EditWavelengthChange(TObject *Sender)
+{
+	try {
+		// Преобразуем текст в число
+		int wavelength = StrToInt(EditWavelength->Text);
+
+		// Проверяем, что значение находится в допустимом диапазоне
+		if (wavelength < TrackBarWavelength->Min) {
+			wavelength = TrackBarWavelength->Min;
+			EditWavelength->Text = IntToStr(wavelength);
+		} else if (wavelength > TrackBarWavelength->Max) {
+			wavelength = TrackBarWavelength->Max;
+			EditWavelength->Text = IntToStr(wavelength);
+		}
+
+		// Обновляем положение TrackBar
+		TrackBarWavelength->Position = wavelength;
+
+
+
+		// Остальная логика (например, обновление StringGridwave и расчеты)
+		// ...
+	} catch (...) {
+		// Если введено некорректное значение, восстанавливаем предыдущее значение
+		EditWavelength->Text = IntToStr(TrackBarWavelength->Position);
+	}
+}
+
+void __fastcall TForm2::EditWavelengthKeyPress(TObject *Sender, System::WideChar &Key)
+{
+    if (Key == VK_RETURN) { // Если нажата клавиша Enter
+        EditWavelengthChange(Sender); // Вызываем обработчик изменения
+        Key = 0; // Предотвращаем дальнейшую обработку
+	}
+}
 

@@ -1,7 +1,4 @@
-﻿[LabelWavelength]
-Coordinates=350,10,114,58
-
-[Wavechange]
+﻿[Wavechange]
 Coordinates=255,133,89,36
 
 [ButtonCalculate]

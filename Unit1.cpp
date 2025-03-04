@@ -268,7 +268,7 @@ void __fastcall TForm1::ButtonCalculateClick(TObject *Sender) {
         }
 
         // Добавление данных в лог
-        logData->Add(FloatToStrF(lambda, ffFixed, 15, 6) + "\t" +
+		logData->Add(FloatToStrF(lambda, ffFixed, 15, 6) + "\t" +
                      FloatToStrF(transmissionValue, ffFixed, 15, 6) + "\t" +
                      FloatToStrF(reflectionValue, ffFixed, 15, 6));
     }
@@ -300,7 +300,7 @@ void __fastcall TForm1::LoadLMR1Click(TObject *Sender) {
 		// Найти узел dispersionsdata
 		_di_IXMLNode rootNode = xmlDoc->DocumentElement;
 		_di_IXMLNode dispNode = rootNode->ChildNodes->FindNode("dispersionsdata");
-        if (dispNode) {
+		if (dispNode) {
 			for (int i = 0; i < dispNode->ChildNodes->Count; i++) {
 				_di_IXMLNode materialNode = dispNode->ChildNodes->Nodes[i];
 				String name = String(materialNode->Attributes["name"]).UpperCase();
@@ -319,36 +319,36 @@ void __fastcall TForm1::LoadLMR1Click(TObject *Sender) {
                             try {
                                 // Убедимся, что используем правильный формат чисел
                                 double w = StrToFloat(wavelength);
-                                double n = StrToFloat(n_value);
+								double n = StrToFloat(n_value);
                                 list->Add(FloatToStrF(w, ffFixed, 15, 6) + " " + FloatToStrF(n, ffFixed, 15, 6));
                             } catch (const Exception &e) {
                                 ShowMessage("Некорректное значение в XML: " + wavelength + " " + n_value + "\n" + e.Message);
 							}
-                        }
+						}
                         list->SaveToFile(savePath);
                     }
                     delete list;
-                }
-                if (type == "Substrate") {
-                    EditSubstrate->Text = name; // Вывести подложку
-                }
-            }
-        }
-        // Заполнить StringGrid слоями
+				}
+				if (type == "Substrate") {
+					EditSubstrate->Text = name; // Вывести подложку
+				}
+			}
+		}
+		// Заполнить StringGrid слоями
 		_di_IXMLNode layerNode = rootNode->ChildNodes->FindNode("monitoringspreadsheet");
-        if (layerNode) {
-            StringGrid1->RowCount = layerNode->ChildNodes->Count + 1;
-            StringGrid1->Cells[0][0] = "№";
-            StringGrid1->Cells[1][0] = "Материал";
+		if (layerNode) {
+			StringGrid1->RowCount = layerNode->ChildNodes->Count + 1;
+			StringGrid1->Cells[0][0] = "№";
+			StringGrid1->Cells[1][0] = "Материал";
 			StringGrid1->Cells[2][0] = "Толщина (нм)";
-            StringGrid1->Cells[3][0] = "Длина волны (нм)";
-            StringGrid1->Cells[4][0] = "№ т-слайда";
-            for (int i = 0; i < layerNode->ChildNodes->Count; i++) {
-                _di_IXMLNode layer = layerNode->ChildNodes->Nodes[i];
-                StringGrid1->Cells[0][i+1] = String(layer->Attributes["number"]);
+			StringGrid1->Cells[3][0] = "Длина волны (нм)";
+			StringGrid1->Cells[4][0] = "№ т-слайда";
+			for (int i = 0; i < layerNode->ChildNodes->Count; i++) {
+				_di_IXMLNode layer = layerNode->ChildNodes->Nodes[i];
+				StringGrid1->Cells[0][i+1] = String(layer->Attributes["number"]);
 				StringGrid1->Cells[1][i+1] = String(layer->Attributes["material"]).UpperCase();
-				StringGrid1->Cells[2][i+1] = String(layer->Attributes["physical_thickness"]);
-                StringGrid1->Cells[3][i+1] = String(layer->Attributes["wavelength"]);
+				StringGrid1->Cells[2][i+1] = FloatToStrF(StrToFloat(String(layer->Attributes["physical_thickness"])), ffFixed, 15, 2);
+				StringGrid1->Cells[3][i+1] = String(layer->Attributes["wavelength"]);
 				StringGrid1->Cells[4][i+1] = String(layer->Attributes["chip"]);
 			}
 		}
@@ -480,7 +480,7 @@ String FormatXML(const _di_IXMLNode node, int level = 0) {
 
 
 
-// Функция загрузки коэффициентов преломления из файла и форматирования под XML
+
 // Функция загрузки коэффициентов преломления из файла и форматирования под XML
 String LoadRefractiveIndexData(String filePath) {
 	TStringList *fileData = new TStringList();
@@ -736,7 +736,7 @@ void __fastcall TForm1::MenuItemChangeThicknessClick(TObject *Sender)
                 if (shouldChange) {
                     double thickness = StrToFloat(StringGrid1->Cells[2][i]); // Текущее значение толщины
                     double newThickness = thickness * (1 + percentage / 100.0); // Новое значение с учетом %
-                    StringGrid1->Cells[2][i] = FloatToStrF(newThickness, ffFixed, 15, 6); // Обновляем значение
+                    StringGrid1->Cells[2][i] = FloatToStrF(newThickness, ffFixed, 15, 2); // Обновляем значение
                 }
             }
         } catch (...) {
@@ -894,7 +894,7 @@ void __fastcall TForm1::ImportTFD1Click(TObject *Sender) {
 		for (size_t i = 0; i < materials.size(); i++) {
 			StringGrid1->Cells[0][i + 1] = IntToStr(static_cast<int>(i + 1)); // Номер строки
 			StringGrid1->Cells[1][i + 1] = materials[i];   // Материал
-			StringGrid1->Cells[2][i + 1] = FloatToStrF(thicknesses[i], ffFixed, 15, 6); // Толщина
+			StringGrid1->Cells[2][i + 1] = FloatToStrF(thicknesses[i], ffFixed, 15, 2); // Толщина
 			StringGrid1->Cells[3][i + 1] = FloatToStr(lambda); // Длина волны
 		}
 		LoadRefractiveIndices();
@@ -913,17 +913,26 @@ void __fastcall TForm1::ImportTFD1Click(TObject *Sender) {
 
 
 void __fastcall TForm1::ButtonClearGraphClick(TObject *Sender) {
-	// Сохраняем RulerLine
-	TLineSeries *rulerLine = RulerLine;
+    // Сохраняем RulerLine
+    TLineSeries *rulerLine = RulerLine;
 
-	// Очищаем все серии на графике, кроме RulerLine
-	for (int i = Chart1->SeriesCount() - 1; i >= 0; i--) {
-		if (Chart1->Series[i] != rulerLine) {
-			Chart1->RemoveSeries(Chart1->Series[i]);
-		}
-	}
+    // Очищаем все серии на графике, кроме RulerLine
+    for (int i = Chart1->SeriesCount() - 1; i >= 0; i--) {
+        if (Chart1->Series[i] != rulerLine) {
+            TChartSeries *series = Chart1->Series[i]; // Получаем указатель на серию
+            Chart1->RemoveSeries(series); // Удаляем серию из графика
+            delete series; // Освобождаем память, занимаемую серией
+        }
+    }
 
-    savedSeries.clear(); // Очищаем сохраненные серии
+    // Очищаем список сохраненных серий
+    for (auto series : savedSeries) {
+        delete series; // Освобождаем память, занимаемую каждой серией
+    }
+    savedSeries.clear(); // Очищаем вектор
+
+    // Очищаем список сохраненных данных графиков
+    savedGraphs.clear();
 
     // Создаем новую серию для графика
     Series1 = new TFastLineSeries(Chart1);
@@ -935,7 +944,11 @@ void __fastcall TForm1::ButtonClearGraphClick(TObject *Sender) {
     if (rulerLine && !Chart1->SeriesList->Contains(rulerLine)) {
         Chart1->AddSeries(rulerLine);
     }
+
+    // Перерисовываем график
+    Chart1->Repaint();
 }
+
 //---------------------------------------------------------------------------
 void __fastcall TForm1::ImportDataFromFile(TObject *Sender) {
 	if (!OpenDialog1->Execute()) {
@@ -1001,7 +1014,7 @@ void __fastcall TForm1::ImportDataFromFile(TObject *Sender) {
         for (size_t i = 0; i < materials.size(); i++) {
 			StringGrid1->Cells[0][i + 1] = IntToStr(layerNumbers[i]);
             StringGrid1->Cells[1][i + 1] = materials[i];
-			StringGrid1->Cells[2][i + 1] = FloatToStrF(thicknesses[i], ffFixed, 15, 6);
+			StringGrid1->Cells[2][i + 1] = FloatToStrF(thicknesses[i], ffFixed, 15, 2);
 			StringGrid1->Cells[3][i + 1] = 550;
             StringGrid1->Cells[4][i + 1] = 1;
 		}
@@ -1108,7 +1121,7 @@ void TForm1::UpdateRulerPosition(double xValue) {
         }
 
         // Добавляем значение в подпись
-        RulerLabel->Caption = RulerLabel->Caption + series->Title + ": X=" + FloatToStrF(xValue, ffFixed, 15, 2) + ", Y=" + FloatToStrF(closestY, ffFixed, 15, 2) + "\n";
+		RulerLabel->Caption = RulerLabel->Caption + series->Title + ": X=" + FloatToStrF(xValue, ffFixed, 15, 2) + ", Y=" + FloatToStrF(closestY, ffFixed, 15, 2) + "\n";
     }
 
 
@@ -1152,7 +1165,7 @@ void TForm1::RecalculateSavedGraphs(double lambdaMin, double lambdaMax) {
         }
     }
 
-    // Пересчитываем данные для сохраненных графиков
+	// Пересчитываем данные для сохраненных графиков
     for (auto & graph : savedGraphs) {
         graph.xValues.clear();
         graph.yValues.clear();
@@ -1162,7 +1175,7 @@ void TForm1::RecalculateSavedGraphs(double lambdaMin, double lambdaMax) {
         for (double lambda = lambdaMin; lambda <= lambdaMax; lambda += step) {
             graph.xValues.push_back(lambda);
 
-            // Вычисляем значение графика
+			// Вычисляем значение графика
             double value = 0.0;
             int calculationType = ComboBoxCalcType->ItemIndex;
 

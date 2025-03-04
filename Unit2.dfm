@@ -5,7 +5,7 @@ object Form2: TForm2
   Anchors = []
   BiDiMode = bdLeftToRight
   BorderWidth = 2
-  Caption = 'Form2'
+  Caption = #1040#1085#1072#1083#1080#1079' '#1084#1086#1085#1080#1090#1086#1088#1080#1085#1075#1072
   ClientHeight = 734
   ClientWidth = 1178
   Color = clBtnFace
@@ -31,13 +31,6 @@ object Form2: TForm2
     1178
     734)
   TextHeight = 15
-  object LabelWavelength: TLabel
-    Left = 432
-    Top = 27
-    Width = 91
-    Height = 15
-    Caption = 'LabelWavelength'
-  end
   object ButtonCalculate: TButton
     Left = 0
     Top = 8
@@ -48,10 +41,9 @@ object Form2: TForm2
     OnClick = ButtonCalculateClick
   end
   object TrackBarWavelength: TTrackBar
-    AlignWithMargins = True
     Left = 0
     Top = 48
-    Width = 849
+    Width = 1065
     Height = 45
     Anchors = [akLeft]
     Position = 1
@@ -68,11 +60,10 @@ object Form2: TForm2
     OnChange = ComboBoxTSChange
   end
   object Chartwave: TChart
-    AlignWithMargins = True
-    Left = 349
-    Top = 108
-    Width = 858
-    Height = 641
+    Left = 345
+    Top = 102
+    Width = 864
+    Height = 647
     Legend.Visible = False
     Title.Text.Strings = (
       'TChart')
@@ -86,8 +77,10 @@ object Form2: TForm2
     Align = alCustom
     TabOrder = 3
     Anchors = [akLeft, akTop, akRight, akBottom]
-    ExplicitLeft = 334
-    ExplicitTop = 93
+    ExplicitLeft = 342
+    ExplicitTop = 99
+    ExplicitWidth = 858
+    ExplicitHeight = 641
     DefaultCanvas = 'TGDIPlusCanvas'
     ColorPaletteIndex = 9
     object Wavechange: TFastLineSeries
@@ -121,11 +114,10 @@ object Form2: TForm2
     end
   end
   object StringGridwave: TStringGrid
-    AlignWithMargins = True
     Left = 17
     Top = 108
     Width = 325
-    Height = 636
+    Height = 642
     Align = alCustom
     Anchors = [akLeft, akTop, akBottom]
     Options = [goFixedVertLine, goFixedHorzLine, goVertLine, goHorzLine, goRangeSelect, goEditing, goFixedRowDefAlign]
@@ -137,6 +129,7 @@ object Form2: TForm2
     OnSetEditText = StringGridwaveSetEditText
     ExplicitLeft = 8
     ExplicitTop = 99
+    ExplicitHeight = 636
   end
   object DiscrEdit: TEdit
     Left = 738
@@ -148,10 +141,19 @@ object Form2: TForm2
   end
   object ComboBoxCalcType: TComboBox
     Left = 159
-    Top = 8
+    Top = 5
     Width = 145
     Height = 23
     TabOrder = 6
     Text = 'ComboBoxCalcType'
+  end
+  object EditWavelength: TEdit
+    Left = 406
+    Top = 19
+    Width = 121
+    Height = 23
+    TabOrder = 7
+    Text = 'EditWavelength'
+    OnKeyPress = EditWavelengthKeyPress
   end
 end

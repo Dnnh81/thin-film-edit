@@ -1,7 +1,7 @@
 object Form1: TForm1
   Left = 0
   Top = 0
-  Caption = 'Form1'
+  Caption = 'T-Layer'
   ClientHeight = 786
   ClientWidth = 1134
   Color = clBtnFace
@@ -58,8 +58,8 @@ object Form1: TForm1
     object RulerLabel: TLabel
       Left = 520
       Top = 8
-      Width = 191
-      Height = 33
+      Width = 55
+      Height = 15
       Anchors = [akTop]
       Caption = 'RulerLabel'
       Visible = False
@@ -116,6 +116,7 @@ object Form1: TForm1
     Align = alCustom
     Anchors = [akLeft, akTop, akBottom]
     DefaultColWidth = 70
+    DefaultColAlignment = taCenter
     DragKind = dkDock
     Options = [goFixedVertLine, goVertLine, goHorzLine, goRangeSelect, goEditing, goFixedRowDefAlign]
     PopupMenu = PopupMenuThickness

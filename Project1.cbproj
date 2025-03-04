@@ -96,7 +96,7 @@
         <IncludePath>Eigen\src\UmfPackSupport\;Eigen\src\SVD\;Eigen\src\SuperLUSupport\;Eigen\src\StlSupport\;Eigen\src\SPQRSupport\;Eigen\src\SparseQR\;Eigen\src\SparseLU\;Eigen\src\SparseCore\;Eigen\src\SparseCholesky\;Eigen\src\QR\;Eigen\src\plugins\;Eigen\src\PaStiXSupport\;Eigen\src\PardisoSupport\;Eigen\src\OrderingMethods\;Eigen\src\misc\;Eigen\src\MetisSupport\;Eigen\src\LU\;Eigen\src\LU\arch\;Eigen\src\KLUSupport\;Eigen\src\Jacobi\;Eigen\src\IterativeLinearSolvers\;Eigen\src\Householder\;Eigen\src\Geometry\arch\;Eigen\src\Geometry\;Eigen\src\Eigenvalues\;Eigen\src\Core\util\;Eigen\src\Core\products\;Eigen\src\Core\functors\;Eigen\src\Core\;Eigen\src\Core\arch\ZVector\;Eigen\src\Core\arch\SYCL\;Eigen\src\Core\arch\SVE\;Eigen\src\Core\arch\SSE\;Eigen\src\Core\arch\NEON\;Eigen\src\Core\arch\MSA\;Eigen\src\Core\arch\HIP\hcc\;Eigen\src\Core\arch\GPU\;Eigen\src\Core\arch\Default\;Eigen\src\Core\arch\CUDA\;Eigen\src\Core\arch\AVX512\;Eigen\src\Core\arch\AVX\;Eigen\src\Core\arch\AltiVec\;Eigen\src\CholmodSupport\;Eigen\src\Cholesky\;proga\;$(IncludePath)</IncludePath>
         <ILINK_LibraryPath>Eigen\src\UmfPackSupport\;Eigen\src\SVD\;Eigen\src\SuperLUSupport\;Eigen\src\StlSupport\;Eigen\src\SPQRSupport\;Eigen\src\SparseQR\;Eigen\src\SparseLU\;Eigen\src\SparseCore\;Eigen\src\SparseCholesky\;Eigen\src\QR\;Eigen\src\plugins\;Eigen\src\PaStiXSupport\;Eigen\src\PardisoSupport\;Eigen\src\OrderingMethods\;Eigen\src\misc\;Eigen\src\MetisSupport\;Eigen\src\LU\;Eigen\src\LU\arch\;Eigen\src\KLUSupport\;Eigen\src\Jacobi\;Eigen\src\IterativeLinearSolvers\;Eigen\src\Householder\;Eigen\src\Geometry\arch\;Eigen\src\Geometry\;Eigen\src\Eigenvalues\;Eigen\src\Core\util\;Eigen\src\Core\products\;Eigen\src\Core\functors\;Eigen\src\Core\;Eigen\src\Core\arch\ZVector\;Eigen\src\Core\arch\SYCL\;Eigen\src\Core\arch\SVE\;Eigen\src\Core\arch\SSE\;Eigen\src\Core\arch\NEON\;Eigen\src\Core\arch\MSA\;Eigen\src\Core\arch\HIP\hcc\;Eigen\src\Core\arch\GPU\;Eigen\src\Core\arch\Default\;Eigen\src\Core\arch\CUDA\;Eigen\src\Core\arch\AVX512\;Eigen\src\Core\arch\AVX\;Eigen\src\Core\arch\AltiVec\;Eigen\src\CholmodSupport\;Eigen\src\Cholesky\;proga\;$(ILINK_LibraryPath)</ILINK_LibraryPath>
         <SanitizedProjectName>Project1</SanitizedProjectName>
-        <Custom_Styles>&quot;Iceberg Classico|VCLSTYLE|$(BDSCOMMONDIR)\Styles\IcebergClassico.vsf&quot;;&quot;Lavender Classico|VCLSTYLE|$(BDSCOMMONDIR)\Styles\LavenderClassico.vsf&quot;</Custom_Styles>
+        <Custom_Styles>&quot;Iceberg Classico|VCLSTYLE|$(BDSCOMMONDIR)\Styles\IcebergClassico.vsf&quot;;&quot;Lavender Classico|VCLSTYLE|$(BDSCOMMONDIR)\Styles\LavenderClassico.vsf&quot;;&quot;Windows10 SlateGray|VCLSTYLE|$(BDSCOMMONDIR)\Styles\Windows10SlateGray.vsf&quot;</Custom_Styles>
     </PropertyGroup>
     <PropertyGroup Condition="'$(Base_Win32)'!=''">
         <PackageImports>adortl;appanalytics;bcbie;bcbsmp;bindcomp;bindcompdbx;bindcompfmx;bindcompvcl;bindcompvclsmp;bindcompvclwinx;bindengine;CloudService;CustomIPTransport;DataSnapClient;DataSnapCommon;DataSnapConnectors;DatasnapConnectorsFreePascal;DataSnapFireDAC;DataSnapIndy10ServerTransport;DataSnapNativeClient;DataSnapProviderClient;DataSnapServer;DataSnapServerMidas;dbexpress;dbrtl;dbxcds;DbxClientDriver;DbxCommonDriver;DBXDb2Driver;DBXFirebirdDriver;DBXInformixDriver;DBXInterBaseDriver;DBXMSSQLDriver;DBXMySQLDriver;DBXOdbcDriver;DBXOracleDriver;DBXSqliteDriver;DBXSybaseASADriver;DBXSybaseASEDriver;dsnap;dsnapcon;dsnapxml;emsclient;emsclientfiredac;emsedge;emshosting;emsserverresource;FireDAC;FireDACADSDriver;FireDACASADriver;FireDACCommon;FireDACCommonDriver;FireDACCommonODBC;FireDACDb2Driver;FireDACDBXDriver;FireDACDSDriver;FireDACIBDriver;FireDACInfxDriver;FireDACMongoDBDriver;FireDACMSAccDriver;FireDACMSSQLDriver;FireDACMySQLDriver;FireDACODBCDriver;FireDACOracleDriver;FireDACPgDriver;FireDACSqliteDriver;FireDACTDataDriver;fmx;fmxase;fmxdae;fmxFireDAC;fmxobj;FMXTee;FmxTeeUI;ibmonitor;ibxbindings;ibxpress;IndyCore;IndyIPClient;IndyIPCommon;IndyIPServer;IndyProtocols;IndySystem;inet;inetdb;inetdbxpress;inetstn;RESTBackendComponents;RESTComponents;rtl;Skia;soapmidas;soaprtl;soapserver;Tee;TeeDB;TeeUI;tethering;vcl;vclactnband;vcldb;vcldsnap;vcledge;vclFireDAC;vclib;vclie;vclimg;VCLRESTComponents;VclSmp;vcltouch;vclwinx;vclx;xmlrtl;$(PackageImports)</PackageImports>
@@ -172,6 +172,9 @@
         <UsePackages>false</UsePackages>
         <BCC_DisableOptimizations>false</BCC_DisableOptimizations>
         <BCC_OptimizeMaximum>true</BCC_OptimizeMaximum>
+        <Icon_MainIcon>Project1_Icon2.ico</Icon_MainIcon>
+        <UWP_CppLogo44>F:\Downloads\917085e1-d53d-4583-bf21-4f8cc0ab9ad2 (2).ico</UWP_CppLogo44>
+        <UWP_CppLogo150>F:\Downloads\917085e1-d53d-4583-bf21-4f8cc0ab9ad2 (2).ico</UWP_CppLogo150>
     </PropertyGroup>
     <PropertyGroup Condition="'$(Cfg_2)'!=''">
         <Defines>NDEBUG;$(Defines)</Defines>
@@ -1174,10 +1177,10 @@
             <DependentOn>Unit4.h</DependentOn>
             <BuildOrder>342</BuildOrder>
         </CppCompile>
+        <FormResources Include="Unit4.dfm"/>
         <FormResources Include="Unit3.dfm"/>
         <FormResources Include="Unit2.dfm"/>
         <FormResources Include="Unit1.dfm"/>
-        <FormResources Include="Unit4.dfm"/>
         <BuildConfiguration Include="Base">
             <Key>Base</Key>
         </BuildConfiguration>
@@ -1443,6 +1446,13 @@
                 <DeployFile LocalName="Eigen\UmfPackSupport" Configuration="Debug" Class="ProjectFile">
                     <Platform Name="Win64x">
                         <RemoteDir>.\</RemoteDir>
+                        <Overwrite>true</Overwrite>
+                    </Platform>
+                </DeployFile>
+                <DeployFile LocalName="F:\Downloads\917085e1-d53d-4583-bf21-4f8cc0ab9ad2 (2).ico" Configuration="Debug" Class="UWP_CppLogo44">
+                    <Platform Name="Win64x">
+                        <RemoteDir>Assets\</RemoteDir>
+                        <RemoteName>Logo44x44.png</RemoteName>
                         <Overwrite>true</Overwrite>
                     </Platform>
                 </DeployFile>

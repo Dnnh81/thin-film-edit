@@ -27,13 +27,13 @@ __published:	// IDE-managed Components
 	TButton *ButtonCalculate;
 	TFastLineSeries *Wavechange;
 	TTrackBar *TrackBarWavelength;
-	TLabel *LabelWavelength;
 	TComboBox *ComboBoxTS;
 	TCustomTeeFunction *TeeFunction1;
 	TFastLineSeries *waveLongSeries;
 	TCustomTeeFunction *TeeFunction2;
 	TEdit *DiscrEdit;
 	TComboBox *ComboBoxCalcType;
+	TEdit *EditWavelength;
 	void __fastcall ButtonCalculateClick(TObject *Sender);
 	void __fastcall TrackBarWavelengthChange(TObject *Sender);
 	 void __fastcall LoadSubstrateRefractiveIndex(const String &filename);
@@ -56,6 +56,9 @@ __published:	// IDE-managed Components
           System::LongInt ARow, const UnicodeString Value);
 	void __fastcall StringGridwaveDrawCell(TObject *Sender, System::LongInt ACol, System::LongInt ARow,
           TRect &Rect, TGridDrawState State);
+	void __fastcall EditWavelengthChange(TObject *Sender);
+	void __fastcall EditWavelengthKeyPress(TObject *Sender, System::WideChar &Key);
+
 
 
 private:
