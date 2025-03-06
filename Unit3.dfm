@@ -24,7 +24,7 @@ object Form3: TForm3
     Top = 200
     Width = 75
     Height = 25
-    Caption = 'ButtonApply'
+    Caption = #1057#1086#1093#1088#1072#1085#1080#1090#1100
     ModalResult = 1
     TabOrder = 1
     OnClick = ButtonApplyClick
@@ -34,7 +34,7 @@ object Form3: TForm3
     Top = 200
     Width = 75
     Height = 25
-    Caption = 'ButtonCancel'
+    Caption = #1054#1090#1084#1077#1085#1080#1090#1100
     TabOrder = 2
     OnClick = ButtonCancelClick
   end
@@ -50,7 +50,7 @@ object Form3: TForm3
   end
   object RadioButtonEven: TRadioButton
     Left = 40
-    Top = 102
+    Top = 113
     Width = 113
     Height = 17
     Caption = 'L-'#1089#1083#1086#1080
@@ -63,5 +63,23 @@ object Form3: TForm3
     Height = 17
     Caption = 'H-'#1057#1083#1086#1080
     TabOrder = 5
+  end
+  object ComboBoxEven: TComboBoxEx
+    Left = 159
+    Top = 110
+    Width = 145
+    Height = 24
+    ItemsEx = <>
+    TabOrder = 6
+    Text = 'ComboBoxEven'
+  end
+  object ComboBoxOdd: TComboBoxEx
+    Left = 159
+    Top = 76
+    Width = 145
+    Height = 24
+    ItemsEx = <>
+    TabOrder = 7
+    Text = 'ComboBoxOdd'
   end
 end

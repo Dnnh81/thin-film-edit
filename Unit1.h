@@ -42,7 +42,6 @@ __published:	// IDE-managed Components
 	TFastLineSeries *Series1;
 	TCustomTeeFunction *TeeFunction1;
 	TMenuItem *Changewavelenght1;
-	TButton *SaveLMR1;
 	TSaveDialog *SaveDialog1;
 	TPopupMenu *PopupMenuThickness;
 	TMenuItem *N1;
@@ -56,14 +55,16 @@ __published:	// IDE-managed Components
 	TLabel *RulerLabel;
 	TCheckBox *CheckBox1;
 	TTrackBar *TrackBarRuler;
+	TMenuItem *Save1;
+	TMenuItem *LMR1;
+	TMenuItem *PLD1;
 
 
-
+    void __fastcall SetColumnWidths();
 	void __fastcall LoadLMR1Click(TObject *Sender);
 	void __fastcall SaveGraphClick(TObject *Sender);
 	void __fastcall ButtonCalculateClick(TObject *Sender);
 	void __fastcall Changewavelenght1Click(TObject *Sender);
-	void __fastcall SaveLMR1Click(TObject *Sender);
 	void __fastcall StringGrid1SelectCell(TObject *Sender, int ACol, int ARow, bool &CanSelect);
 	void __fastcall StringGrid1MouseDown(TObject *Sender, TMouseButton Button, TShiftState Shift, int X, int Y);
 
@@ -82,8 +83,9 @@ __published:	// IDE-managed Components
 	void __fastcall FormResize(TObject *Sender);
 	Complex __fastcall CalculateTransmission(double lambda, bool considerBackside);
 	Complex __fastcall CalculateReflection(double lambda, bool considerBackside);
-
 	void __fastcall EditLambdaKeyPress(TObject *Sender, System::WideChar &Key);
+	void __fastcall LMR1Click(TObject *Sender);
+	void __fastcall PLD1Click(TObject *Sender);
 			  private:	// User declarations
 				bool isRulerVisible;
 				char* OldLocale; // Флаг видимости линейки

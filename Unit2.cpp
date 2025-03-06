@@ -125,7 +125,7 @@ void CalculateLayer(double lambda, const String& substrate, const std::vector<St
     double currentThickness = 0.0;
     for (size_t i = 0; i < layerIndex; ++i) {
         currentThickness += thicknesses[i];
-    }
+	}
 
     std::vector<std::pair<double, double>> layerResults; // Данные для текущего слоя
     std::vector<std::pair<double, double>> waveLongData; // Данные для waveLongSeries
@@ -168,7 +168,7 @@ void CalculateLayer(double lambda, const String& substrate, const std::vector<St
 
 		// Определяем максимальное значение t в зависимости от длины волны
 		if (lambda < 550.0) {
-			maxT = 110.0; // Для длины волны до 550
+			maxT = 100.0; // Для длины волны до 550
 		} else if (lambda >= 550.0 && lambda < 800.0) {
 			maxT = 150.0; // Для длины волны от 550 до 800
 		} else if (lambda >= 800.0) {

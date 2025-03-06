@@ -169,22 +169,13 @@ object Form1: TForm1
     TabOrder = 6
     Text = 'ComboBoxCalcType'
   end
-  object SaveLMR1: TButton
-    Left = 1009
-    Top = 2
-    Width = 105
-    Height = 20
-    Caption = 'Save LMR'
-    TabOrder = 7
-    OnClick = SaveLMR1Click
-  end
   object SaveGraph: TButton
     Left = 751
     Top = 2
     Width = 121
     Height = 21
     Caption = 'SaveGraph'
-    TabOrder = 8
+    TabOrder = 7
     OnClick = SaveGraphClick
   end
   object ButtonClearGraph: TButton
@@ -193,7 +184,7 @@ object Form1: TForm1
     Width = 125
     Height = 20
     Caption = 'Clear Graph'
-    TabOrder = 9
+    TabOrder = 8
     OnClick = ButtonClearGraphClick
   end
   object MainMenu1: TMainMenu
@@ -216,6 +207,17 @@ object Form1: TForm1
     object Changewavelenght1: TMenuItem
       Caption = 'Change wavelenght'
       OnClick = Changewavelenght1Click
+    end
+    object Save1: TMenuItem
+      Caption = 'Save as'
+      object LMR1: TMenuItem
+        Caption = 'LMR'
+        OnClick = LMR1Click
+      end
+      object PLD1: TMenuItem
+        Caption = 'PLD'
+        OnClick = PLD1Click
+      end
     end
   end
   object OpenDialog1: TOpenDialog
